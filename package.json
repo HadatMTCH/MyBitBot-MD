@@ -1,7 +1,7 @@
 {
-    "name": "blender",
+    "name": "mybitbot",
     "version": "0.1.0",
-    "description": "well...Unique and intresting project",
+    "description": "bot written in md",
     "main": "index.js",
     "directories": {
         "lib": "lib"
