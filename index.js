@@ -1,4 +1,10 @@
 const axios = require('axios')
+const post = 8000;
+server.get('/', (req, res) => { res.send('V-Bot server running...') })
+server.listen(port, () => {
+    console.clear()
+    console.log('\nWeb-server running!\n')
+})
 const {
     default: makeWASocket,
     DisconnectReason,
