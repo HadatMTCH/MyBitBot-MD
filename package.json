@@ -1,0 +1,21 @@
+{
+    "name": "blender",
+    "version": "0.1.0",
+    "description": "well...Unique and intresting project",
+    "main": "index.js",
+    "directories": {
+        "lib": "lib"
+    },
+    "scripts": {
+        "start": "node index.js"
+    },
+    "keywords": [],
+    "author": "mahesh",
+    "license": "ISC",
+    "dependencies": {
+        "@adiwajshing/baileys": "^4.1.0",
+        "@adiwajshing/keyed-db": "^0.2.4",
+        "axios": "^0.26.1",
+        "qrcode-terminal": "^0.12.0"
+    }
+}
