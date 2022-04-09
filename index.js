@@ -1,7 +1,7 @@
 const axios = require('axios')
 const express = require('express')
 const server = express()
-const port = 8000;
+const port = 8001;
 server.get('/', (req, res) => { res.send('V-Bot server running...') })
 server.listen(port, () => {
     console.clear()
