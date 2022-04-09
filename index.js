@@ -1,5 +1,5 @@
 const axios = require('axios')
-const post = 8000;
+const port = 8000;
 server.get('/', (req, res) => { res.send('V-Bot server running...') })
 server.listen(port, () => {
     console.clear()
