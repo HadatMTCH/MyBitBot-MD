@@ -29,9 +29,7 @@ const {
     MessageOptions,
     Mimetype
 } = require("@adiwajshing/baileys");
-const { Boom } = require("@hapi/boom");
 const P = require("pino");
-const { default: makeLegacySocket } = require('@adiwajshing/baileys/lib/LegacySocket');
 let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
 const logger = MAIN_LOGGER.child({});
 logger.level = "trace";
@@ -39,11 +37,11 @@ logger.level = "trace";
 const store = makeInMemoryStore({ logger });
 
 
-store.readFromFile("./baileys_store_multi.json");
-// save every 10s
-setInterval(() => {
-    store.writeToFile("./baileys_store_multi.json");
-}, 10_000);
+// store.readFromFile("./baileys_store_multi.json");
+// // save every 10s
+// setInterval(() => {
+//     store.writeToFile("./baileys_store_multi.json");
+// }, 10_000);
 
 // const { getAuthMD, setAuthMD } = require("./DB/authMD");
 // let state = getAuthMD();
