@@ -1,5 +1,9 @@
 const axios = require('axios')
+const { writeFile } = require('fs/promises')
 const fs = require('fs')
+const memeMaker = require('@erickwendel/meme-maker')
+const ffmpeg = require('fluent-ffmpeg')//sticker module
+const { Sticker } = require('wa-sticker-formatter')
 /* --------------------------------- SERVER --------------------------------- */
 const express = require("express");
 const app = express();
@@ -19,6 +23,7 @@ const {
     useSingleFileAuthState,
     makeInMemoryStore,
     fetchLatestBaileysVersion,
+    downloadContentFromMessage,
     MessageType,
     MessageOptions,
     Mimetype
@@ -103,7 +108,7 @@ const startSock = async () => {
     const OwnerNumb = '918318585418@s.whatsapp.net';
     const prefix = '.';
     const allowedNumbs = ["918318585418"];
-
+    const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` }
     //***********************************************************//
 
     //************************************************************/
@@ -166,6 +171,7 @@ const startSock = async () => {
                         : "";
         //----------------------------------------------------------------------------------------//
         if (body[1] == " ") body = body[0] + body.slice(2);
+        const evv = body.trim().split(/ +/).slice(1).join(' ');
         const command = body.slice(1).trim().split(/ +/).shift().toLowerCase();
         const args = body.trim().split(/ +/).slice(1);
         const isCmd = body.startsWith(prefix);
@@ -220,9 +226,9 @@ const startSock = async () => {
         ///////////////////////////////////////////
         if (isCmd) {
             // Display every command info
-            console.log("[COMMAND]", command, "[FROM]", senderNumb, "[IN]", groupName);
+            console.log("[COMMAND] ", command, " [FROM] ", senderNumb, " [name] " + mek.messages[0].pushName + " [IN] ", groupName);
             // Send every command info
-            OwnerSend("[COMMAND] " + command + " [FROM] " + senderNumb + " [IN] " + groupName);
+            OwnerSend("[COMMAND] " + command + " [FROM] " + senderNumb + " [name] " + mek.messages[0].pushName + " [IN] " + groupName);
             switch (command) {
                 case 'a':
                 case 'alive':
@@ -291,7 +297,6 @@ const startSock = async () => {
                                 {
                                     video: { url: res.data.url },
                                     caption: "hello!",
-                                    mimetype: 'video/mp4',
                                     gifPlayback: true,
                                 }
                             )
@@ -303,18 +308,7 @@ const startSock = async () => {
                         reply(`Eror. Contect Dev.`);
                     });
                     break;
-                // case 'test':
-                //     if (!isTaggedSticker) return;
-                //     const stickerURL = msg.message.stickerMessage.url;
-                //     sock.sendMessage(
-                //         from,
-                //         {
-                //             video: { url: stickerURL },
-                //             mimetype: 'video/mp4'
-                //         }
-                //     )
-                //     break;
-
+                //-----------------------------IDP--------------------------------------------//
                 case 'idp':
                     if (!isGroup) return;
                     if (!args[0]) return reply(`_Enter User name after idp_`);
@@ -359,12 +353,296 @@ const startSock = async () => {
                     }
                     idp(prof);
                     break;
+
+                case 'txtmeme':
+                case 'text':
+                    if (!isGroup) return;
+                    if (!args[0]) return reply(`*Use* -testmeme _FontSize;toptext;bottomtext_`);
+                    console.log('content ', evv);
+                    var TopText, BottomText, FontSize = 0;
+                    if (evv.includes(";")) {
+                        if (evv.split(";").length == 3) {
+                            FontSize = evv.split(";")[0];
+                            TopText = evv.split(";")[1];
+                            BottomText = evv.split(";")[2];
+                        } else if (evv.split(";").length == 2) {
+                            TopText = evv.split(";")[0];
+                            BottomText = evv.split(";")[1];
+                        }
+                        else if (evv.split(";").length == 1) {
+                            TopText = evv.split(";")[0];
+                            BottomText = '';
+                        } else {
+                            TopText = '';
+                            BottomText = '';
+                        }
+                        OwnerSend('Args: ' + FontSize + ' ' + TopText + ' ' + BottomText);
+                        const MemePath = getRandom('.png');
+                        if ((isMedia && !mek.messages[0].message.videoMessage || isTaggedImage)) {
+                            let downloadFilePath;
+                            if (mek.messages[0].message.imageMessage) {
+                                downloadFilePath = mek.messages[0].message.imageMessage;
+                            } else {
+                                downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
+                            }
+                            // console.log(mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage);
+                            // const encmedia = isQuotedImage ? JSON.parse(JSON.stringify(mek).replace('quotedM', 'm')).message.extendedTextMessage.contextInfo : mek
+                            const stream = await downloadContentFromMessage(downloadFilePath, 'image');
+                            let buffer = Buffer.from([])
+                            for await (const chunk of stream) {
+                                buffer = Buffer.concat([buffer, chunk])
+                            }
+                            const media = getRandom('.jpeg');
+                            await writeFile(media, buffer)
+                            const options = {
+                                image: media,
+                                outfile: MemePath,
+                                topText: TopText,
+                                bottomText: BottomText,
+                                // font: './../impact.ttf',
+                                fontSize: (FontSize == 0) ? 50 : FontSize,
+                                // fontFill: '#000000',
+                                // textPos: 'center',
+                                // strokeColor: '#000',
+                                strokeWeight: 1
+                            }
+                            memeMaker(options).then(() => {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        image: fs.readFileSync(MemePath),
+                                        mimetype: 'image/jpeg',
+                                        quoted: mek.messages[0]
+                                    }
+                                )
+                                fs.unlinkSync(MemePath);
+                                fs.unlinkSync(media);
+                                console.log('Sent');
+                            });
+                        } else {
+                            reply(`*Reply to Image Only*`);
+                        }
+                    } else {
+                        reply(`*Must Include ; to saprate Header and Footer*`);
+                    }
+                    break;
                 case 'jid':
                     if (!isGroup) return;
                     if (!allowedNumbs.includes(senderNumb)) return;
                     reply(from);
                     break;
 
+                //----------------------------------TTS-------------------------------------//
+                case 'tts':
+                    if (!isGroup) return;
+                    var take = evv;
+                    OwnerSend(take + " =tts message");
+                    let uri = encodeURI(take);
+                    async function getTTS() {
+                        await axios.get(
+                            "https://api.xteam.xyz/attp?file&text=" + uri,
+                            { responseType: "arraybuffer" }
+                        ).then((ttinullimage) => {
+                            sock.sendMessage(
+                                from,
+                                {
+                                    image: Buffer.from(ttinullimage.data),
+                                    mimetype: 'image/webp'
+                                }
+                            );
+                            console.log('sent');
+                        }).catch(() => {
+                            reply(`_Website is Down_\nWait for Sometime`);
+                        });
+                    }
+                    getTTS();
+                    break;
+
+
+                //----------------------------STICKER--------------------------------------//
+                case 'sticker':
+                case 's':
+                    if (!isGroup) return;
+                    // Format should be <prefix>sticker pack <pack_name> author <author_name>
+                    var packName = ""
+                    var authorName = ""
+                    if (mek.messages[0].message.extendedTextMessage) {
+                        if (!args);
+                        else
+                            OwnerSend('Args: ' + args);
+                    }
+                    // Check if pack keyword is found in args!
+                    if (args.includes('pack') == true) {
+                        packNameDataCollection = false;
+                        for (let i = 0; i < args.length; i++) {
+                            // Enables data collection when keyword found in index!
+                            if (args[i].includes('pack') == true) {
+                                packNameDataCollection = true;
+                            }
+                            if (args[i].includes('author') == true) {
+                                packNameDataCollection = false;
+                            }
+                            // If data collection is enabled and args length is more then one it will start appending!
+                            if (packNameDataCollection == true) {
+                                packName = packName + args[i] + ' '
+                            }
+                        }
+                        // Check if variable contain unnecessary startup word!
+                        if (packName.startsWith('pack ')) {
+                            packName = `${packName.split('pack ')[1]}`
+                        }
+                    }
+                    // Check if author keyword is found in args!
+                    if (args.includes('author') == true) {
+                        authorNameDataCollection = false;
+                        for (let i = 0; i < args.length; i++) {
+                            // Enables data collection when keyword found in index!
+                            if (args[i].includes('author') == true) {
+                                authorNameDataCollection = true;
+                            }
+                            // If data collection is enabled and args length is more then one it will start appending!
+                            if (authorNameDataCollection == true) {
+                                authorName = authorName + args[i] + ' '
+                            }
+                            // Check if variable contain unnecessary startup word!
+                            if (authorName.startsWith('author ')) {
+                                authorName = `${authorName.split('author ')[1]}`
+                            }
+                        }
+                    }
+                    // Check if packName and authorName is empty it will pass default values!
+                    if (packName == "") {
+                        packName = "MD"
+                    }
+                    if (authorName == "") {
+                        authorName = "BitBot"
+                    }
+                    outputOptions = [`-vcodec`, `libwebp`, `-vf`, `scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse`];
+                    if ((args.includes('crop') == true) || (args.includes('c') == true)) {
+                        outputOptions = [
+                            `-vcodec`,
+                            `libwebp`,
+                            `-vf`,
+                            `crop=w='min(min(iw\,ih)\,500)':h='min(min(iw\,ih)\,500)',scale=500:500,setsar=1,fps=15`,
+                            `-loop`,
+                            `0`,
+                            `-ss`,
+                            `00:00:00.0`,
+                            `-t`,
+                            `00:00:10.0`,
+                            `-preset`,
+                            `default`,
+                            `-an`,
+                            `-vsync`,
+                            `0`,
+                            `-s`,
+                            `512:512`
+                        ];
+                    }
+                    if ((isMedia && !mek.messages[0].message.videoMessage || isTaggedImage)) {
+                        let downloadFilePath;
+                        if (mek.messages[0].message.imageMessage) {
+                            downloadFilePath = mek.messages[0].message.imageMessage;
+                        } else {
+                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
+                        }
+                        const stream = await downloadContentFromMessage(downloadFilePath, 'image');
+                        let buffer = Buffer.from([])
+                        for await (const chunk of stream) {
+                            buffer = Buffer.concat([buffer, chunk])
+                        }
+                        const media = getRandom('.jpeg');
+                        await writeFile(media, buffer)
+                        ran = getRandom('.webp')
+                        reply('⌛Changing media to sticker⏳')//⌛Ruk Bhai..Kar raha ⏳
+                        await ffmpeg(`./${media}`).input(media).on('error', function (err) {
+                            fs.unlinkSync(media)
+                            console.log(`Error : ${err}`)
+                            reply('_❌ ERROR: Failed to convert image into sticker! ❌_')
+                        }).on('end', function () {
+                            buildSticker()
+                        }).addOutputOptions(outputOptions).toFormat('webp').save(ran)
+                        async function buildSticker() {
+                            if (args.includes('nometadata') == true) {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        sticker: fs.readFileSync(ran)
+                                    });
+                                fs.unlinkSync(media)
+                                fs.unlinkSync(ran)
+                            } else {
+                                const sticker1 = new Sticker(ran, {
+                                    pack: packName, // The pack name
+                                    author: authorName, // The author name
+                                })
+                                const saveSticker = getRandom('.webp')
+                                await sticker1.toFile(saveSticker)
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        sticker: fs.readFileSync(saveSticker)
+                                    });
+                                fs.unlinkSync(media)
+                                fs.unlinkSync(ran)
+                                fs.unlinkSync(saveSticker)
+                            }
+                        }
+                    } else if ((isMedia && mek.messages[0].message.videoMessage.seconds < 11 || isTaggedVideo && mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.videoMessage.seconds < 11)) {
+                        let downloadFilePath;
+                        if (mek.messages[0].message.imageMessage) {
+                            downloadFilePath = mek.messages[0].message.videoMessage;
+                        } else {
+                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.videoMessage;
+                        }
+                        const stream = await downloadContentFromMessage(downloadFilePath, 'video');
+                        let buffer = Buffer.from([])
+                        for await (const chunk of stream) {
+                            buffer = Buffer.concat([buffer, chunk])
+                        }
+                        const media = getRandom('.mp4');
+                        await writeFile(media, buffer)
+                        ran = getRandom('.webp')
+                        reply('⌛Changing media file to Sticker⏳')//⌛ Ho raha Thoda wait karle... ⏳
+                        await ffmpeg(`./${media}`).inputFormat(media.split('.')[1]).on('error', function (err) {
+                            fs.unlinkSync(media)
+                            mediaType = media.endsWith('.mp4') ? 'video' : 'gif'
+                            reply(`_❌ ERROR: Failed to convert ${mediaType} to sticker! ❌_`)
+                        }).on('end', function () {
+                            buildSticker()
+                        }).addOutputOptions(outputOptions).toFormat('webp').save(ran)
+                        async function buildSticker() {
+                            if (args.includes('nometadata') == true) {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        sticker: fs.readFileSync(ran),
+                                    });
+                                fs.unlinkSync(media)
+                                fs.unlinkSync(ran)
+                            } else {
+                                const sticker1 = new Sticker(ran, {
+                                    pack: packName, // The pack name
+                                    author: authorName, // The author name
+                                })
+                                const saveSticker = getRandom('.webp')
+                                await sticker1.toFile(saveSticker)
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        sticker: fs.readFileSync(saveSticker)
+                                    });
+                                fs.unlinkSync(media)
+                                fs.unlinkSync(ran)
+                                fs.unlinkSync(saveSticker)
+                            }
+                        }
+                    }
+                    else {
+                        reply(`❌ *Error reply to image or video only* `);
+                        console.log('Error not replyed');
+                    }
+                    break;
                 /* ------------------------------- CASE: DELETE ------------------------------ */
                 case "delete":
                 case "d":
