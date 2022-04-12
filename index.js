@@ -1,3 +1,5 @@
+const axios = require('axios')
+const fs = require('fs')
 /* --------------------------------- SERVER --------------------------------- */
 const express = require("express");
 const app = express();
@@ -9,19 +11,8 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
     console.log("\nWeb-server running!\n");
 });
-
-/* -------------------------- delete auth from url -------------------------- */
-const authHiddenPath = process.env.authHiddenPath; //to have a hidden path for auth db deletion
-const { dropAuth } = require("./DB/authDBdelete");
-app.get("/" + authHiddenPath, async (req, res) => {
-    let response = await dropAuth();
-    if (response) res.send("Auth DB deleted!");
-    else res.send("There is some error!");
-});
-
-/* ------------------------------------ Baiileys ----------------------------------- */
 const {
-    WAConnection,
+    default: makeWASocket,
     DisconnectReason,
     AnyMessageContent,
     delay,
@@ -32,20 +23,26 @@ const {
     MessageOptions,
     Mimetype
 } = require("@adiwajshing/baileys");
+const { Boom } = require("@hapi/boom");
+const P = require("pino");
+const { default: makeLegacySocket } = require('@adiwajshing/baileys/lib/LegacySocket');
+let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
+const logger = MAIN_LOGGER.child({});
+logger.level = "trace";
+
+const store = makeInMemoryStore({ logger });
 
 
-// const { Boom } = require("@hapi/boom");
-// const P = require("pino");
-const axios = require('axios')
-const fs = require('fs')
+store.readFromFile("./baileys_store_multi.json");
+// save every 10s
+setInterval(() => {
+    store.writeToFile("./baileys_store_multi.json");
+}, 10_000);
 
-//***************************************SETTINGS*************//
-const OwnerNumb = process.env.OWNER_NUMB + '@s.whatsapp.net';
-const prefix = '.';
-const allowedNumbs = ["918318585418"];
+// const { getAuthMD, setAuthMD } = require("./DB/authMD");
+// let state = getAuthMD();
 
-//***********************************************************//
-
+const { state, saveState } = useSingleFileAuthState("./auth_info_multi.json");
 const getGroupAdmins = (participants) => {
     admins = [];
     for (let i of participants) {
@@ -53,37 +50,19 @@ const getGroupAdmins = (participants) => {
     }
     return admins;
 };
-//main
-const main = async () => {
-    // const { default: makeLegacySocket } = require('@adiwajshing/baileys/lib/LegacySocket');
-    const { connectToWA } = require("./DB/authDBheroku");
-    const sock = await connectToWA(WAConnection);
-    // let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
-    // const logger = MAIN_LOGGER.child({});
-    // logger.level = "trace";
-    // const store = makeInMemoryStore({ logger });
-    // store.readFromFile("./baileys_store_multi.json");
-    // // save every 10s
-    // setInterval(() => {
-    //     store.writeToFile("./baileys_store_multi.json");
-    // }, 10_000);
-    // // const { getAuthMD, setAuthMD } = require("./DB/authMD");
-    // // let state = getAuthMD();
-
-    // const { state, saveState } = useSingleFileAuthState("./auth_info_multi.json");
-    // start a connection
-    // const startSock = async () => {
+// start a connection
+const startSock = async () => {
     // fetch latest version of WA Web
-    // const { version, isLatest } = await fetchLatestBaileysVersion();
-    // console.log(`using WA v${version.join(".")}, isLatest: ${isLatest}`);
-    // let noLogs = P({ level: "silent" }); //to hide the chat logs
-    // const sock = makeWASocket({
-    //     version,
-    //     logger: noLogs,
-    //     printQRInTerminal: true,
-    //     auth: state,
-    // });
-    // store.bind(sock.ev);
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    console.log(`using WA v${version.join(".")}, isLatest: ${isLatest}`);
+    let noLogs = P({ level: "silent" }); //to hide the chat logs
+    const sock = makeWASocket({
+        version,
+        logger: noLogs,
+        printQRInTerminal: true,
+        auth: state,
+    });
+    store.bind(sock.ev);
     const sendMessageWTyping = async (msg, jid) => {
         await sock.presenceSubscribe(jid);
         await delay(500);
@@ -120,6 +99,12 @@ const main = async () => {
         }
     });
     //-------------------------------------------------------------------------------------------------------------------//
+    //***************************************SETTINGS*************//
+    const OwnerNumb = '918318585418@s.whatsapp.net';
+    const prefix = '.';
+    const allowedNumbs = ["918318585418"];
+
+    //***********************************************************//
 
     //************************************************************/
     const { downloadmeme } = require('./plugins/meme')
@@ -219,6 +204,17 @@ const main = async () => {
                 { text: taks }
             )
         }
+
+        // if (msg.message.stickerMessage) {
+        //     reply('yes');
+        //     sock.sendMessage(
+        //         from,
+        //         {
+        //             image: { url: msg.message.stickerMessage.url },
+        //             mimetype: 'image/webp'
+        //         }
+        //     )
+        // }
         ///////////////////////////////////////////
         //////////////////COMMANDS\\\\\\\\\\\\\\\\\
         ///////////////////////////////////////////
@@ -406,27 +402,25 @@ const main = async () => {
             }
         }
     });
-    // //------------------------connection.update------------------------------//
-    // sock.ev.on("connection.update", (update) => {
-    //     const { connection, lastDisconnect } = update;
-    //     if (connection === "close") {
-    //         // reconnect if not logged out
-    //         if (
-    //             (lastDisconnect.error &&
-    //                 lastDisconnect.error.output &&
-    //                 lastDisconnect.error.output.statusCode) !== DisconnectReason.loggedOut
-    //         ) {
-    //             startSock();
-    //         } else {
-    //             console.log("Connection closed. You are logged out.");
-    //         }
-    //     }
-    //     console.log("connection update", update);
-    // });
-    // // listen for when the auth credentials is updated
-    // sock.ev.on("creds.update", saveState);
-    // return sock;
-    // };
-    // startSock();
-}
-main();
+    //------------------------connection.update------------------------------//
+    sock.ev.on("connection.update", (update) => {
+        const { connection, lastDisconnect } = update;
+        if (connection === "close") {
+            // reconnect if not logged out
+            if (
+                (lastDisconnect.error &&
+                    lastDisconnect.error.output &&
+                    lastDisconnect.error.output.statusCode) !== DisconnectReason.loggedOut
+            ) {
+                startSock();
+            } else {
+                console.log("Connection closed. You are logged out.");
+            }
+        }
+        console.log("connection update", update);
+    });
+    // listen for when the auth credentials is updated
+    sock.ev.on("creds.update", saveState);
+    return sock;
+};
+startSock();
