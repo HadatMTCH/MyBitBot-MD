@@ -37,11 +37,11 @@ logger.level = "trace";
 const store = makeInMemoryStore({ logger });
 
 
-// store.readFromFile("./baileys_store_multi.json");
-// // save every 10s
-// setInterval(() => {
-//     store.writeToFile("./baileys_store_multi.json");
-// }, 10_000);
+store.readFromFile("./baileys_store_multi.json");
+// save every 10s
+setInterval(() => {
+    store.writeToFile("./baileys_store_multi.json");
+}, 10_000);
 
 // const { getAuthMD, setAuthMD } = require("./DB/authMD");
 // let state = getAuthMD();
@@ -681,25 +681,25 @@ const startSock = async () => {
             }
         }
     });
-    //------------------------connection.update------------------------------//
-    sock.ev.on("connection.update", (update) => {
-        const { connection, lastDisconnect } = update;
-        if (connection === "close") {
-            // reconnect if not logged out
-            if (
-                (lastDisconnect.error &&
-                    lastDisconnect.error.output &&
-                    lastDisconnect.error.output.statusCode) !== DisconnectReason.loggedOut
-            ) {
-                startSock();
-            } else {
-                console.log("Connection closed. You are logged out.");
-            }
-        }
-        console.log("connection update", update);
-    });
+    // //------------------------connection.update------------------------------//
+    // sock.ev.on("connection.update", (update) => {
+    //     const { connection, lastDisconnect } = update;
+    //     if (connection === "close") {
+    //         // reconnect if not logged out
+    //         if (
+    //             (lastDisconnect.error &&
+    //                 lastDisconnect.error.output &&
+    //                 lastDisconnect.error.output.statusCode) !== DisconnectReason.loggedOut
+    //         ) {
+    //             startSock();
+    //         } else {
+    //             console.log("Connection closed. You are logged out.");
+    //         }
+    //     }
+    //     console.log("connection update1", update);
+    // });
     // listen for when the auth credentials is updated
-    sock.ev.on("creds.update", saveState);
-    return sock;
+    // sock.ev.on("creds.update", saveState);
+    // return sock;
 };
 startSock();
