@@ -4,6 +4,7 @@ const fs = require('fs')
 const memeMaker = require('@erickwendel/meme-maker')
 const ffmpeg = require('fluent-ffmpeg')//sticker module
 const { Sticker } = require('wa-sticker-formatter')
+const { userHelp } = require('./plugins/help')
 /* --------------------------------- SERVER --------------------------------- */
 const express = require("express");
 const app = express();
@@ -230,6 +231,9 @@ const startSock = async () => {
             // Send every command info
             OwnerSend("[COMMAND] " + command + " [FROM] " + senderNumb + " [name] " + mek.messages[0].pushName + " [IN] " + groupName);
             switch (command) {
+                case 'help':
+                    SendMessageNoReply(userHelp(prefix, groupName))
+                    break;
                 case 'a':
                 case 'alive':
                     if (!isGroup) return;
@@ -675,7 +679,7 @@ const startSock = async () => {
 
                 default:
                     if (isGroup)
-                        reply(`*Error*`)
+                        reply(`*Error Not Added All commands*`)
             }
         }
     });
