@@ -446,8 +446,7 @@ const startSock = async () => {
                             sock.sendMessage(
                                 from,
                                 {
-                                    image: Buffer.from(ttinullimage.data),
-                                    mimetype: 'image/webp'
+                                    sticker: Buffer.from(ttinullimage.data),
                                 }
                             );
                             console.log('sent');
