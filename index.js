@@ -1,3 +1,4 @@
+require('dotenv').config()
 const axios = require('axios')
 const { writeFile } = require('fs/promises')
 const fs = require('fs')
@@ -29,7 +30,17 @@ const {
     MessageOptions,
     Mimetype
 } = require("@adiwajshing/baileys");
+
+//-----------------------------------CONST--------------------------//
+const OwnerNumb = process.env.OWNER_NUMB + '@s.whatsapp.net';
+const prefix = '.';
+const allowedNumbs = ["918318585418"];
+const INSTA_API_KEY = process.env.INSTA_API_KEY;
+console.log("INSTA: ", process.env.INSTA_API_KEY);
 const P = require("pino");
+const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` }
+//---------------------------------------------------------------------------------------//
+
 let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
 const logger = MAIN_LOGGER.child({});
 logger.level = "trace";
@@ -84,7 +95,6 @@ const startSock = async () => {
     }
     //-----------------------------------------------------------------------//
 
-    //---------------------------------------------------------------------------------------------------------//
     //---------------------------------------group-participants.update-----------------------------------------//
     sock.ev.on('group-participants.update', (anu) => {
         try {
@@ -103,12 +113,6 @@ const startSock = async () => {
         }
     });
     //-------------------------------------------------------------------------------------------------------------------//
-    //***************************************SETTINGS*************//
-    const OwnerNumb = '918318585418@s.whatsapp.net';
-    const prefix = '.';
-    const allowedNumbs = ["918318585418"];
-    const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` }
-    //***********************************************************//
 
     //************************************************************/
     const { downloadmeme } = require('./plugins/meme')
@@ -225,21 +229,21 @@ const startSock = async () => {
         ///////////////////////////////////////////
         if (isCmd) {
             // Display every command info
-            console.log("[COMMAND] ", command, " [FROM] ", senderNumb, " [name] " + mek.messages[0].pushName + " [IN] ", groupName);
+            console.log("[COMMAND]", command, "[FROM]", senderNumb, "[name]" + mek.messages[0].pushName + "[IN]", groupName);
             // Send every command info
             OwnerSend("[COMMAND] " + command + " [FROM] " + senderNumb + " [name] " + mek.messages[0].pushName + " [IN] " + groupName);
             switch (command) {
                 case 'help':
-                    SendMessageNoReply(userHelp(prefix, groupName))
+                    SendMessageNoReply(userHelp(prefix, groupName, mek.messages[0].pushName))
                     break;
                 case 'a':
                 case 'alive':
                     if (!isGroup) return;
-                    reply(`Hello !! ${mek.messages[0].pushName}\n*Yes I'm Alive*`);
+                    reply("```⌊ *Hǝllo!!* " + mek.messages[0].pushName + " ⌋\n\n\n     *Yes I'm Alive*```");
                     break;
                 case 'term':
                     if (!allowedNumbs.includes(senderNumb)) {
-                        reply("Sorry only for moderators")
+                        reply("```Sorry only for moderators```")
                         return;
                     }
                     var k = args.join(' ');
@@ -276,6 +280,100 @@ const startSock = async () => {
                     }
                     break;
 
+                /* ------------------------------- CASE: INSTA ------------------------------ */
+                case "insta":
+                case "i":
+                    if (!isGroup) {
+                        reply("❌ Group command only!");
+                        return;
+                    }
+                    if (args.length === 0) {
+                        reply(`❌ URL is empty! \nSend ${prefix}insta url`);
+                        return;
+                    }
+                    let urlInsta = args[0];
+                    if (
+                        !(
+                            urlInsta.includes("instagram.com/p/") ||
+                            urlInsta.includes("instagram.com/reel/") ||
+                            urlInsta.includes("instagram.com/tv/")
+                        )
+                    ) {
+                        reply(
+                            `❌ Wrong URL! Only Instagram posted videos, tv and reels can be downloaded.`
+                        );
+                        return;
+                    }
+                    if (urlInsta.includes("?"))
+                        urlInsta = urlInsta.split("/?")[0];
+                    console.log(urlInsta);
+                    OwnerSend("Downloading URL : " + urlInsta);
+                    reply(`*Downloading...Pls wait*`);
+                    axios.get(`https://api-xcoders.xyz/api/download/ig?url=${urlInsta}/?igshid=g26k5coikzwr&apikey=${INSTA_API_KEY}`).then((response) => {
+                        if (response.data.status == true) {
+                            if (response.data.result.media_count == 1) {
+                                if (response.data.result.type == "image") {
+                                    sock.sendMessage(
+                                        from,
+                                        {
+                                            image: { url: response.data.result.url },
+                                            quoted: mek.messages[0],
+                                            caption: `${response.data.result.caption}`
+                                        }
+                                    )
+                                    console.log('sent');
+                                }
+                                else if (response.data.result.type == "video") {
+                                    sock.sendMessage(
+                                        from,
+                                        {
+                                            video: { url: response.data.result.url },
+                                            quoted: mek.messages[0],
+                                            caption: `${response.data.result.caption}`
+                                        }
+                                    )
+                                    console.log('sent');
+                                }
+                                else {
+                                    reply(`Not Media Type Found`);
+                                }
+                            }
+                            else if (response.data.result.media_count > 1) {
+                                for (let i = 0; i < response.data.result.media_count; i++) {
+                                    if (response.data.result.result_url[i].type == "image") {
+                                        sock.sendMessage(
+                                            from,
+                                            {
+                                                image: { url: response.data.result.result_url[i].url },
+                                                quoted: mek.messages[0],
+                                                caption: `*Post*: ${i + 1}`
+                                            }
+                                        )
+                                        console.log('sent');
+                                    }
+                                    if (response.data.result.result_url[i].type == "video") {
+                                        sock.sendMessage(
+                                            from,
+                                            {
+                                                video: { url: response.data.result.result_url[i].url },
+                                                quoted: mek.messages[0],
+                                                caption: `*Post*:${i + 1}`
+                                            }
+                                        )
+                                        console.log('sent');
+                                    }
+                                }
+                            }
+                            else {
+                                console.log('media count not found');
+                            }
+                        }
+                        else if (response.data.status == false) {
+                            reply(`*Post is Private.*`);
+                            console.log('error');
+                        }
+                    })
+                    break;
                 case 'meme':
                     if (!isGroup) return;
                     reply(`*Sending...*`);
@@ -681,25 +779,25 @@ const startSock = async () => {
             }
         }
     });
-    // //------------------------connection.update------------------------------//
-    // sock.ev.on("connection.update", (update) => {
-    //     const { connection, lastDisconnect } = update;
-    //     if (connection === "close") {
-    //         // reconnect if not logged out
-    //         if (
-    //             (lastDisconnect.error &&
-    //                 lastDisconnect.error.output &&
-    //                 lastDisconnect.error.output.statusCode) !== DisconnectReason.loggedOut
-    //         ) {
-    //             startSock();
-    //         } else {
-    //             console.log("Connection closed. You are logged out.");
-    //         }
-    //     }
-    //     console.log("connection update1", update);
-    // });
+    //------------------------connection.update------------------------------//
+    sock.ev.on("connection.update", (update) => {
+        const { connection, lastDisconnect } = update;
+        if (connection === "close") {
+            // reconnect if not logged out
+            if (
+                (lastDisconnect.error &&
+                    lastDisconnect.error.output &&
+                    lastDisconnect.error.output.statusCode) !== DisconnectReason.loggedOut
+            ) {
+                startSock();
+            } else {
+                console.log("Connection closed. You are logged out.");
+            }
+        }
+        console.log("connection update", update);
+    });
     // listen for when the auth credentials is updated
-    // sock.ev.on("creds.update", saveState);
-    // return sock;
+    sock.ev.on("creds.update", saveState)
+    return sock;
 };
 startSock();
