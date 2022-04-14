@@ -5,7 +5,6 @@ const fs = require('fs')
 const memeMaker = require('@erickwendel/meme-maker')
 const ffmpeg = require('fluent-ffmpeg')//sticker module
 const { Sticker } = require('wa-sticker-formatter')
-const { userHelp } = require('./plugins/help')
 /* --------------------------------- SERVER --------------------------------- */
 const express = require("express");
 const app = express();
@@ -36,7 +35,6 @@ const OwnerNumb = process.env.OWNER_NUMB + '@s.whatsapp.net';
 const prefix = '.';
 const allowedNumbs = ["918318585418"];
 const INSTA_API_KEY = process.env.INSTA_API_KEY;
-console.log("INSTA: ", process.env.INSTA_API_KEY);
 const P = require("pino");
 const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` }
 //---------------------------------------------------------------------------------------//
@@ -109,6 +107,7 @@ const startSock = async () => {
 
     //************************************************************/
     const { downloadmeme } = require('./plugins/meme')
+    const { userHelp, adminList } = require('./plugins/help')
     //************************************************************/
 
     //************************************************************/
@@ -292,7 +291,13 @@ const startSock = async () => {
             OwnerSend("[COMMAND] " + command + " [FROM] " + senderNumb + " [name] " + mek.messages[0].pushName + " [IN] " + groupName);
             switch (command) {
                 case 'help':
-                    SendMessageNoReply(userHelp(prefix, groupName, mek.messages[0].pushName))
+                    if (!isGroup) return;
+                    SendMessageNoReply(userHelp(prefix, groupName, mek.messages[0].pushName));
+                    break;
+                case 'admin':
+                    if (!isGroup) return;
+                    if (!isGroupAdmins && !allowedNumbs.includes(sender)) return reply('```kya matlab tum admin nhi ho 🙄```');
+                    SendMessageNoReply(adminList(prefix, groupName, mek.messages[0].pushName));
                     break;
                 case 'a':
                 case 'alive':
@@ -855,31 +860,110 @@ const startSock = async () => {
                         reply(`❌ Error!`);
                     }
                     break;
-                ////////////////////////\\\\\\\\\\\\\\\\\\\\\\
+                ///////////////////////\\\\\\\\\\\\\\\\\\\\\\
                 ////////////////////ADMIN\\\\\\\\\\\\\\\\\\\\\
                 //////////////////////////////////////////////
                 case 'add':
                     if (!isGroup) return;
-                    if (!isGroupAdmins) return reply(`❌ Admin Commands`);
-                    if (!isBotGroupAdmins) return reply(`❌ Bot need admin power`);
-                    if (!args) return reply(`❌ Add number after add`);
+                    if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) return reply(`❌ kya matlab tum admin nhi ho 🙄`);
+                    if (!isBotGroupAdmins) return reply(`❌ Kya lagta hai mai bina admin powers ke add kar sakta hm?`);
+                    let taggedJid;
+                    if (mek.messages[0].message.extendedTextMessage) {
+                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant)
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
+                        console.log(taggedJid);
+                    }
+                    else {
+                        if (!args[0]) return reply(`❌ give number or tag on message`);
+                        taggedJid = evv + '@s.whatsapp.net';
+                    }
                     try {
-                        const addNum = evv + '@s.whatsapp.net';
-                        console.log(from);
                         await sock.groupParticipantsUpdate(
                             from,
-                            [addNum],
+                            [taggedJid],
                             "add"
                         )
                     } catch (err) {
                         console.log('error', err);
                     }
-
+                    break;
+                case 'remove':
+                case 'ban':
+                case 'kick':
+                    if (!isGroup) return;
+                    if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) return reply(`❌ kya matlab tum admin nhi ho 🙄`);
+                    if (!isBotGroupAdmins) return reply(`❌ kya lagta hai mai bina admin powers ke kick kar sakta hm?`);
+                    try {
+                        let taggedJid;
+                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
+                        } else {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
+                        }
+                        if (allowedNumbs.includes(taggedJid.split("@")[0])) return reply(`❌ You Can't remove Owner`);
+                        if (taggedJid == botNumberJid) return reply(`❌ Can't remove myself`);
+                        if (SuperAdmin.includes(taggedJid)) return reply(`❌ Can't remove SuperAdmin`);
+                        await sock.groupParticipantsUpdate(
+                            from,
+                            [taggedJid],
+                            "remove"
+                        )
+                    } catch (err) {
+                        console.log('error', err);
+                    }
                     break;
 
+                case 'promote':
+                    if (!isGroup) return;
+                    if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) return reply(`❌ kya matlab tum admin nhi ho 🙄`);
+                    if (!isBotGroupAdmins) return reply(`❌ kya lagta hai mai bina admin powers ke promote kar sakta hm?`);
+                    try {
+                        let taggedJid;
+                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
+                        } else {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
+                        }
+                        await sock.groupParticipantsUpdate(
+                            from,
+                            [taggedJid],
+                            "promote"
+                        )
+                        reply(`✔️ *Promoted!!*`)
+                    } catch (err) {
+                        console.log('error', err);
+                    }
+                    break;
+                case 'demote':
+                    if (!isGroup) return;
+                    if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) return reply(`❌ kya matlab tum admin nhi ho 🙄`);
+                    if (!isBotGroupAdmins) return reply(`❌ kya lagta hai mai bina admin powers ke demote kar sakta hm?`);
+                    try {
+                        let taggedJid;
+                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
+                        } else {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
+                        }
+                        if (groupAdmins.includes(OwnerNumb))
+                            if (allowedNumbs.includes(taggedJid.split("@")[0])) return reply(`❌ You Can't demote Owner`);
+                        if (taggedJid == botNumberJid) return reply(`❌ Can't demote myself`);
+                        if (SuperAdmin.includes(taggedJid)) return reply(`❌ Can't demote SuperAdmin`);
+                        await sock.groupParticipantsUpdate(
+                            from,
+                            [taggedJid],
+                            "demote"
+                        )
+                        reply(`✔️ *Demoted!!*`)
+                    } catch (err) {
+                        console.log('error', err);
+                    }
+                    break;
                 default:
                     if (isGroup)
-                        reply(`*Error Not Added All commands*`)
+                        reply(`*Error Not Added All commands*`);
+                    if (!isGroup)
+                        reply(`ʜᴇʟʟᴏ ${mek.messages[0].pushName}\ɴɪ'ᴍ ʙɪᴛʙᴏᴛ ᴀ ᴡʜᴀᴛꜱᴀᴘᴘ ʙᴏᴛ ʙᴜᴛ ɪ ᴅᴏɴ'ᴛ ᴡᴏʀᴋ ɪɴ ᴅɪʀᴇᴄᴛ ᴍᴇꜱꜱᴀɢᴇꜱ (ᴅᴍ). ꜱᴏ, ᴅᴏɴ'ᴛ ꜱᴘᴀᴍ ʜᴇʀᴇ.`)
             }
         }
     });
