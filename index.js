@@ -58,13 +58,6 @@ setInterval(() => {
 // let state = getAuthMD();
 
 const { state, saveState } = useSingleFileAuthState("./auth_info_multi.json");
-const getGroupAdmins = (participants) => {
-    admins = [];
-    for (let i of participants) {
-        i.isAdmin ? admins.push(i.jid) : "";
-    }
-    return admins;
-};
 // start a connection
 const startSock = async () => {
     // fetch latest version of WA Web
@@ -133,6 +126,20 @@ const startSock = async () => {
         })
         return horo;
     }
+    //classic Dictionary
+    async function dictionary(word) {
+        var config = {
+            method: 'GET',
+            url: `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
+        }
+        let classic;
+        await axios.request(config).then((res) => {
+            classic = res.data[0];
+        }).catch((error) => {
+            return;
+        })
+        return classic;
+    }
     //************************************************************/
     //---------------------------------------messages.upsert----------------------------------//
     sock.ev.on("messages.upsert", async (mek) => {
@@ -147,7 +154,23 @@ const startSock = async () => {
         // const type=''
         const type = Object.keys(msg.message)[0];
 
-
+        //----------------------------GET ADMINS-------------------------------//
+        const getGroupAdmins = (participants) => {
+            admins = [];
+            for (let i of participants) {
+                ((i.admin == 'admin') || (i.admin == 'superadmin')) ? admins.push(i.id) : "";
+            }
+            return admins;
+        };
+        const getSupperAdmin = (participants) => {
+            admins = [];
+            for (let i of participants) {
+                if (i.admin == 'superadmin') {
+                    admins.push(i.id);
+                    return admins;
+                }
+            }
+        }
         //-------------------------------BOT-NUMBER------------------------------//
         let botNumberJid = sock.user.id;
         botNumberJid =
@@ -183,6 +206,7 @@ const startSock = async () => {
         let sender = isGroup ? msg.key.participant : mek.messages[0].key.remoteJid;
         const senderNumb = sender.includes(":") ? sender.split(":")[0] : sender.split("@")[0];
         if (msg.key.fromMe) sender = botNumberJid;
+        const senderjid = sender.includes(":") ? sender.slice(0, sender.search(":")) + '@' + sender.split("@")[1] : sender;
         //-----------------------------------------------------------------------//
         const groupName = isGroup ? groupMetadata.subject : "";
         const groupDesc = isGroup ? groupMetadata.desc : "";
@@ -190,7 +214,8 @@ const startSock = async () => {
         const groupAdmins = isGroup ? getGroupAdmins(groupMembers) : "";
         //-----------------------------------------------------------------------//
         const isBotGroupAdmins = groupAdmins.includes(botNumberJid) || false;
-        const isGroupAdmins = groupAdmins.includes(sender) || false;
+        const isGroupAdmins = groupAdmins.includes(senderjid) || false;
+        const SuperAdmin = getSupperAdmin(groupMembers);
         const isMedia = type === "imageMessage" || type === "videoMessage";
         const isTaggedImage = type === "extendedTextMessage" && content.includes("imageMessage");
         const isTaggedVideo = type === "extendedTextMessage" && content.includes("videoMessage");
@@ -213,24 +238,57 @@ const startSock = async () => {
                 { text: taks }
             )
         }
-
-        // if (msg.message.stickerMessage) {
-        //     reply('yes');
-        //     sock.sendMessage(
-        //         from,
-        //         {
-        //             image: { url: msg.message.stickerMessage.url },
-        //             mimetype: 'image/webp'
-        //         }
-        //     )
-        // }
+        //-------------------------------------------------------------------------------------------------//
+        //-------------------------------------------------------------------------------------------------//
+        //-----------------------------JOKE-------------------------------//
+        async function jokeFun(take) {
+            const baseURL = "https://v2.jokeapi.dev";
+            const categories = (!take) ? "Any" : take;
+            const cate = [
+                "Programming",
+                "Misc",
+                "Dark",
+                "Pun",
+                "Spooky",
+                "Chrimstmas"
+            ]
+            if (categories != "Any" && !(cate.includes(take))) return reply(`*Wrong Categories*\n *_Type any one_* :  *${cate
+                }*`);
+            const params = "blacklistFlags=religious,racist";
+            axios.get(`${baseURL
+                }/joke/${categories
+                }?${params
+                }`).then((res) => {
+                    let randomJoke = res.data;
+                    if (randomJoke.type == "single") {
+                        mess = 'Category => ' + randomJoke.category + '\n\n' + randomJoke.joke;
+                        reply(mess);
+                    }
+                    else {
+                        mess = 'Category => ' + randomJoke.category + '\n\n' + randomJoke.setup + '\n' + randomJoke.delivery;
+                        reply(mess);
+                    }
+                    console.log("Categories => ", categories);;
+                });
+        }
+        //-------------------------ADVICE--------------//
+        async function getRandomAD() {
+            await axios(`https://api.adviceslip.com/advice`).then((res) => {
+                reply(`🍬  🎀  𝒜𝒹𝓋𝒾𝒸𝑒  🎀  🍬\n` + "```" + res.data.slip.advice + "```");
+            }).catch((error) => {
+                console.log('error', error);
+                reply(`Error`);
+            })
+        }
+        //---------------------------------------------------------------------------------------------------//
+        //----------------------------------------------------------------------------------------------------//
         ///////////////////////////////////////////
         //////////////////COMMANDS\\\\\\\\\\\\\\\\\
         ///////////////////////////////////////////
         if (isCmd) {
             // Display every command info
             console.log("[COMMAND]", command, "[FROM]", senderNumb, "[name]" + mek.messages[0].pushName + "[IN]", groupName);
-            // Send every command info
+            // Send every command info to Owner
             OwnerSend("[COMMAND] " + command + " [FROM] " + senderNumb + " [name] " + mek.messages[0].pushName + " [IN] " + groupName);
             switch (command) {
                 case 'help':
@@ -257,7 +315,16 @@ const startSock = async () => {
                     if (!isGroup) return;
                     reply(mek.messages[0].pushName)
                     break;
-
+                //----------------------JOKE----------------------------//
+                case 'joke':
+                    if (!isGroup) return;
+                    jokeFun(args[0]);
+                    break;
+                //-------------------------------ADVICE----------------------//
+                case 'advice':
+                    if (!isGroup) return;
+                    getRandomAD();
+                    break;
                 //-------------------HORO-----------------------//
                 case 'horo':
                     if (!isGroup) return;
@@ -317,9 +384,9 @@ const startSock = async () => {
                                         from,
                                         {
                                             image: { url: response.data.result.url },
-                                            quoted: mek.messages[0],
                                             caption: `${response.data.result.caption}`
-                                        }
+                                        },
+                                        { quoted: mek.messages[0] }
                                     )
                                     console.log('sent');
                                 }
@@ -328,9 +395,9 @@ const startSock = async () => {
                                         from,
                                         {
                                             video: { url: response.data.result.url },
-                                            quoted: mek.messages[0],
                                             caption: `${response.data.result.caption}`
-                                        }
+                                        },
+                                        { quoted: mek.messages[0] }
                                     )
                                     console.log('sent');
                                 }
@@ -345,9 +412,9 @@ const startSock = async () => {
                                             from,
                                             {
                                                 image: { url: response.data.result.result_url[i].url },
-                                                quoted: mek.messages[0],
                                                 caption: `*Post*: ${i + 1}`
-                                            }
+                                            },
+                                            { quoted: mek.messages[0] }
                                         )
                                         console.log('sent');
                                     }
@@ -356,9 +423,9 @@ const startSock = async () => {
                                             from,
                                             {
                                                 video: { url: response.data.result.result_url[i].url },
-                                                quoted: mek.messages[0],
                                                 caption: `*Post*:${i + 1}`
-                                            }
+                                            },
+                                            { quoted: mek.messages[0] }
                                         )
                                         console.log('sent');
                                     }
@@ -374,6 +441,22 @@ const startSock = async () => {
                         }
                     })
                     break;
+                //-----------------------DIC-----------------------------//
+                case 'dic':
+                    if (!isGroup) return;
+                    let w = args[0]
+                    try {
+                        const dice = await dictionary(w)
+                        console.log(dice.word);
+                        reply(`*Term*:- ${dice.word}
+  *Pronounciation*:- ${dice.phonetic}
+  *Meaning*: ${dice.meanings[0].definitions[0].definition}
+  *Example*: ${dice.meanings[0].definitions[0].example}`)
+                    } catch (err) {
+                        return reply(`Sorry Word Not Found`)
+                    }
+                    break;
+                //--------------------------MEME---------------------------------//
                 case 'meme':
                     if (!isGroup) return;
                     reply(`*Sending...*`);
@@ -385,9 +468,9 @@ const startSock = async () => {
                                 from,
                                 {
                                     image: { url: res.data.url },
-                                    mimetype: 'image/jpeg',
                                     caption: `${res.data.title}`
-                                }
+                                },
+                                { quoted: mek.messages[0] }
                             );
                         }
                         else {
@@ -398,7 +481,8 @@ const startSock = async () => {
                                     video: { url: res.data.url },
                                     caption: "hello!",
                                     gifPlayback: true,
-                                }
+                                },
+                                { quoted: mek.messages[0] }
                             )
                             // fs.unlinkSync("./pic.mp4");
                             // });
@@ -442,9 +526,12 @@ const startSock = async () => {
                                 from,
                                 {
                                     image: { url: res.data.graphql.user.profile_pic_url_hd },
-                                    caption: `${prof}`,
-                                    quoted: mek
-                                }
+                                    caption: `*Username:* ${res.data.graphql.user.username}
+*Bio:* ${res.data.graphql.user.biography}
+*Followers:* ${res.data.graphql.user.edge_followed_by.count}
+*Following:* ${res.data.graphql.user.edge_follow.count}`,
+                                },
+                                { quoted: mek.messages[0] }
                             )
                         }).catch((error) => {
                             console.log(error);
@@ -512,8 +599,8 @@ const startSock = async () => {
                                     {
                                         image: fs.readFileSync(MemePath),
                                         mimetype: 'image/jpeg',
-                                        quoted: mek.messages[0]
-                                    }
+                                    },
+                                    { quoted: mek.messages[0] }
                                 )
                                 fs.unlinkSync(MemePath);
                                 fs.unlinkSync(media);
@@ -746,31 +833,48 @@ const startSock = async () => {
                 case "delete":
                 case "d":
                     try {
-                        if (!msg.message.extendedTextMessage) {
+                        if (!mek.messages[0].message.extendedTextMessage) return reply(`❌ Tag message of bot to delete.`);
+                        if (!(mek.messages[0].message.extendedTextMessage.contextInfo.participant == botNumberJid)) {
                             reply(`❌ Tag message of bot to delete.`);
                             return;
                         }
-                        // console.log('Mek: ',mek.messages[0].message.extendedTextMessage);
-                        if (botNumberJid == msg.message.extendedTextMessage.contextInfo.participant) {
-                            // SendMessageNoReply('yes')
-                            //         await sock.sendMessage(
-                            //             from,
-                            //             {
-                            //                 delete: mek.messages[0].key
-                            //             }
-                            //         )
-                            //     } else {
-                            //         reply(`❌ Tag message of bot to delete.`);
+                        const options = {
+                            remoteJid: botNumberJid,
+                            fromMe: true,
+                            id: mek.messages[0].message.extendedTextMessage.contextInfo.stanzaId
                         }
+                        await sock.sendMessage(
+                            from,
+                            {
+                                delete: options
+                            }
+                        )
+
                     } catch (err) {
                         console.log(err);
                         reply(`❌ Error!`);
                     }
-                    const response = await sock.sendMessage(from, { text: 'hello!' }) // send a message
-                    console.log(response.key);
-                    // sends a message to delete the given message
-                    // this deletes the message for everyone
-                    await sock.sendMessage(from, { delete: response.key })
+                    break;
+                ////////////////////////\\\\\\\\\\\\\\\\\\\\\\
+                ////////////////////ADMIN\\\\\\\\\\\\\\\\\\\\\
+                //////////////////////////////////////////////
+                case 'add':
+                    if (!isGroup) return;
+                    if (!isGroupAdmins) return reply(`❌ Admin Commands`);
+                    if (!isBotGroupAdmins) return reply(`❌ Bot need admin power`);
+                    if (!args) return reply(`❌ Add number after add`);
+                    try {
+                        const addNum = evv + '@s.whatsapp.net';
+                        console.log(from);
+                        await sock.groupParticipantsUpdate(
+                            from,
+                            [addNum],
+                            "add"
+                        )
+                    } catch (err) {
+                        console.log('error', err);
+                    }
+
                     break;
 
                 default:
