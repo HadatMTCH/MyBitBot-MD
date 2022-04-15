@@ -39,7 +39,7 @@ const P = require("pino");
 const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` }
 const { igApi, getSessionId } = require('insta-fetcher');
 let ig = new igApi(INSTA_API_KEY);
-ig.setCookie(INSTA_API_KEY);
+// ig.setCookie(INSTA_API_KEY);
 //---------------------------------------------------------------------------------------//
 
 let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
