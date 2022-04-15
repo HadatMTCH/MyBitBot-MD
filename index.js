@@ -37,6 +37,8 @@ const allowedNumbs = ["918318585418"];
 const INSTA_API_KEY = process.env.INSTA_API_KEY;
 const P = require("pino");
 const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` }
+const { igApi, getSessionId } = require('insta-fetcher');
+let ig = new igApi(INSTA_API_KEY);
 //---------------------------------------------------------------------------------------//
 
 let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
@@ -46,11 +48,11 @@ logger.level = "trace";
 const store = makeInMemoryStore({ logger });
 
 
-store.readFromFile("./baileys_store_multi.json");
-// save every 10s
-setInterval(() => {
-    store.writeToFile("./baileys_store_multi.json");
-}, 10_000);
+// store.readFromFile("./baileys_store_multi.json");
+// // save every 10s
+// setInterval(() => {
+//     store.writeToFile("./baileys_store_multi.json");
+// }, 10_000);
 
 // const { getAuthMD, setAuthMD } = require("./DB/authMD");
 // let state = getAuthMD();
@@ -108,6 +110,8 @@ const startSock = async () => {
     //************************************************************/
     const { downloadmeme } = require('./plugins/meme')
     const { userHelp, adminList } = require('./plugins/help')
+    const { EmojiAPI } = require('emoji-api')
+    const emoji = new EmojiAPI();
     //************************************************************/
 
     //************************************************************/
@@ -270,7 +274,7 @@ const startSock = async () => {
                     console.log("Categories => ", categories);;
                 });
         }
-        //-------------------------ADVICE--------------//
+        //-----------------------------------------ADVICE---------------------------------------------------//
         async function getRandomAD() {
             await axios(`https://api.adviceslip.com/advice`).then((res) => {
                 reply(`🍬  🎀  𝒜𝒹𝓋𝒾𝒸𝑒  🎀  🍬\n` + "```" + res.data.slip.advice + "```");
@@ -279,7 +283,9 @@ const startSock = async () => {
                 reply(`Error`);
             })
         }
-        //---------------------------------------------------------------------------------------------------//
+        //--------------------------------------------------DM-------------------------------------------------//
+        if (!isGroup)
+            reply(`ʜᴇʟʟᴏ ${mek.messages[0].pushName}\nɪ'ᴍ ʙɪᴛʙᴏᴛ ᴀ ᴡʜᴀᴛꜱᴀᴘᴘ ʙᴏᴛ ʙᴜᴛ ɪ ᴅᴏɴ'ᴛ ᴡᴏʀᴋ ɪɴ ᴅɪʀᴇᴄᴛ ᴍᴇꜱꜱᴀɢᴇꜱ (ᴅᴍ). ꜱᴏ, ᴅᴏɴ'ᴛ ꜱᴘᴀᴍ ʜᴇʀᴇ./nᴛʜᴀɴᴋꜱ`);
         //----------------------------------------------------------------------------------------------------//
         ///////////////////////////////////////////
         //////////////////COMMANDS\\\\\\\\\\\\\\\\\
@@ -290,20 +296,24 @@ const startSock = async () => {
             // Send every command info to Owner
             OwnerSend("[COMMAND] " + command + " [FROM] " + senderNumb + " [name] " + mek.messages[0].pushName + " [IN] " + groupName);
             switch (command) {
+                //------------------HELP------------------------------------------------------//
                 case 'help':
                     if (!isGroup) return;
                     SendMessageNoReply(userHelp(prefix, groupName, mek.messages[0].pushName));
                     break;
+                //------------------------------ADMIN---------------------------------------//
                 case 'admin':
                     if (!isGroup) return;
                     if (!isGroupAdmins && !allowedNumbs.includes(sender)) return reply('```kya matlab tum admin nhi ho 🙄```');
                     SendMessageNoReply(adminList(prefix, groupName, mek.messages[0].pushName));
                     break;
+                //-------------------------------------ALIVE------------------------------------//
                 case 'a':
                 case 'alive':
                     if (!isGroup) return;
-                    reply("```⌊ *Hǝllo!!* " + mek.messages[0].pushName + " ⌋\n\n\n     *Yes I'm Alive*```");
+                    reply("```⌊ *Hǝllo*!! " + mek.messages[0].pushName + " ⌋\n\n\n🫠🅈🄴🅂 🄸'🄼 🄰🄻🄸🅅🄴🫠```");
                     break;
+                //-------------------------TERMINAL------------------------------//
                 case 'term':
                     if (!allowedNumbs.includes(senderNumb)) {
                         reply("```Sorry only for moderators```")
@@ -311,11 +321,17 @@ const startSock = async () => {
                     }
                     var k = args.join(' ');
                     console.log(k);
-                    var store = await eval(k);
-                    console.log(store);
-                    var store2 = JSON.stringify(store);
-                    reply(`${store2}`);
+                    try {
+                        var store = await eval(k);
+                        console.log(store);
+                        var store2 = JSON.stringify(store);
+                        reply(`${store2}`);
+                    } catch (err) {
+                        reply(`Error See Log WhatsApp Number to know more`);
+                        return OwnerSend('Term: ' + err);
+                    }
                     break;
+                //---------------------------MY-NAME--------------------------//
                 case 'my':
                     if (!isGroup) return;
                     reply(mek.messages[0].pushName)
@@ -381,69 +397,148 @@ const startSock = async () => {
                     console.log(urlInsta);
                     OwnerSend("Downloading URL : " + urlInsta);
                     reply(`*Downloading...Pls wait*`);
-                    axios.get(`https://api-xcoders.xyz/api/download/ig?url=${urlInsta}/?igshid=g26k5coikzwr&apikey=${INSTA_API_KEY}`).then((response) => {
-                        if (response.data.status == true) {
-                            if (response.data.result.media_count == 1) {
-                                if (response.data.result.type == "image") {
+                    // axios.get(`https://api-xcoders.xyz/api/download/ig?url=${urlInsta}/?igshid=g26k5coikzwr&apikey=${INSTA_API_KEY}`).then((response) => {
+                    //     if (response.data.status == true) {
+                    //         if (response.data.result.media_count == 1) {
+                    //             if (response.data.result.type == "image") {
+                    //                 sock.sendMessage(
+                    //                     from,
+                    //                     {
+                    //                         image: { url: response.data.result.url },
+                    //                         caption: `${response.data.result.caption}`
+                    //                     },
+                    //                     { quoted: mek.messages[0] }
+                    //                 )
+                    //                 console.log('sent');
+                    //             }
+                    //             else if (response.data.result.type == "video") {
+                    //                 sock.sendMessage(
+                    //                     from,
+                    //                     {
+                    //                         video: { url: response.data.result.url },
+                    //                         caption: `${response.data.result.caption}`
+                    //                     },
+                    //                     { quoted: mek.messages[0] }
+                    //                 )
+                    //                 console.log('sent');
+                    //             }
+                    //             else {
+                    //                 reply(`Not Media Type Found`);
+                    //             }
+                    //         }
+                    //         else if (response.data.result.media_count > 1) {
+                    //             for (let i = 0; i < response.data.result.media_count; i++) {
+                    //                 if (response.data.result.result_url[i].type == "image") {
+                    //                     sock.sendMessage(
+                    //                         from,
+                    //                         {
+                    //                             image: { url: response.data.result.result_url[i].url },
+                    //                             caption: `*Post*: ${i + 1}`
+                    //                         },
+                    //                         { quoted: mek.messages[0] }
+                    //                     )
+                    //                     console.log('sent');
+                    //                 }
+                    //                 if (response.data.result.result_url[i].type == "video") {
+                    //                     sock.sendMessage(
+                    //                         from,
+                    //                         {
+                    //                             video: { url: response.data.result.result_url[i].url },
+                    //                             caption: `*Post*:${i + 1}`
+                    //                         },
+                    //                         { quoted: mek.messages[0] }
+                    //                     )
+                    //                     console.log('sent');
+                    //                 }
+                    //             }
+                    //         }
+                    //         else {
+                    //             console.log('media count not found');
+                    //         }
+                    //     }
+                    //     else if (response.data.status == false) {
+                    //         reply(`*Post is Private.*`);
+                    //         console.log('error');
+                    //     }
+                    // })
+                    ig.fetchPost(urlInsta).then((res) => {
+                        if (res.media_count == 1) {
+                            if (res.links[0].type == "video") {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        video: { url: res.links[0].url }
+                                    },
+                                    { quoted: mek.messages[0] }
+                                )
+                            } else if (res.links[0].type == "image") {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        image: { url: res.links[0].url }
+                                    },
+                                    { quoted: mek.messages[0] }
+                                )
+                            }
+                        } else if (res.media_count > 1) {
+                            for (let i; i < res.media_count; i++) {
+                                if (res.links[0].type == "video") {
                                     sock.sendMessage(
                                         from,
                                         {
-                                            image: { url: response.data.result.url },
-                                            caption: `${response.data.result.caption}`
+                                            video: { url: res.links[0].url }
                                         },
                                         { quoted: mek.messages[0] }
                                     )
-                                    console.log('sent');
-                                }
-                                else if (response.data.result.type == "video") {
+                                } else if (res.links[0].type == "image") {
                                     sock.sendMessage(
                                         from,
                                         {
-                                            video: { url: response.data.result.url },
-                                            caption: `${response.data.result.caption}`
+                                            image: { url: res.links[0].url }
                                         },
                                         { quoted: mek.messages[0] }
                                     )
-                                    console.log('sent');
                                 }
-                                else {
-                                    reply(`Not Media Type Found`);
-                                }
-                            }
-                            else if (response.data.result.media_count > 1) {
-                                for (let i = 0; i < response.data.result.media_count; i++) {
-                                    if (response.data.result.result_url[i].type == "image") {
-                                        sock.sendMessage(
-                                            from,
-                                            {
-                                                image: { url: response.data.result.result_url[i].url },
-                                                caption: `*Post*: ${i + 1}`
-                                            },
-                                            { quoted: mek.messages[0] }
-                                        )
-                                        console.log('sent');
-                                    }
-                                    if (response.data.result.result_url[i].type == "video") {
-                                        sock.sendMessage(
-                                            from,
-                                            {
-                                                video: { url: response.data.result.result_url[i].url },
-                                                caption: `*Post*:${i + 1}`
-                                            },
-                                            { quoted: mek.messages[0] }
-                                        )
-                                        console.log('sent');
-                                    }
-                                }
-                            }
-                            else {
-                                console.log('media count not found');
                             }
                         }
-                        else if (response.data.status == false) {
-                            reply(`*Post is Private.*`);
-                            console.log('error');
+                    }).catch((error) => {
+                        console.log(error);
+                        reply('Error');
+                    });
+                    break;
+
+                //-----------------------------------EMOJI-TO-STICKER------------------------------//
+                case 'pmoji':
+                    if (!isGroup) return;
+                    if (!args[0]) return reply(`❌ Enter emoji after pmoji`);
+                    OwnerSend('Args: ' + evv);
+                    console.log('Args:', args);
+                    emoji.get(args[0]).then((response) => {
+                        let UrlEmoji = '';
+                        if (args.length == 1) {
+                            for (let i of response.images) {
+                                if (i.vendor.toLowerCase() == 'whatsapp')
+                                    UrlEmoji = i.url;
+                            }
+                        } else if (args.length == 2) {
+                            for (let i of response.images) {
+                                if (i.vendor.toLowerCase() == args[1].toLowerCase())
+                                    UrlEmoji = i.url;
+                            }
                         }
+                        if (UrlEmoji == '') return reply('Emoji not Found for Args');
+                        sock.sendMessage(
+                            from,
+                            {
+                                image: { url: `${UrlEmoji}` },
+                                caption: `Emoji: ${response.emoji}
+Unicode: ${response.unicode}
+Name: ${response.name}`
+                            }
+                        )
+                    }).catch((error) => {
+                        reply(`❌ Emoji not found!!`);
+                        console.log(error);
                     })
                     break;
                 //-----------------------DIC-----------------------------//
@@ -577,8 +672,6 @@ const startSock = async () => {
                             } else {
                                 downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
                             }
-                            // console.log(mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage);
-                            // const encmedia = isQuotedImage ? JSON.parse(JSON.stringify(mek).replace('quotedM', 'm')).message.extendedTextMessage.contextInfo : mek
                             const stream = await downloadContentFromMessage(downloadFilePath, 'image');
                             let buffer = Buffer.from([])
                             for await (const chunk of stream) {
@@ -654,7 +747,6 @@ const startSock = async () => {
                 case 'sticker':
                 case 's':
                     if (!isGroup) return;
-                    // Format should be <prefix>sticker pack <pack_name> author <author_name>
                     var packName = ""
                     var authorName = ""
                     if (mek.messages[0].message.extendedTextMessage) {
@@ -662,46 +754,37 @@ const startSock = async () => {
                         else
                             OwnerSend('Args: ' + args);
                     }
-                    // Check if pack keyword is found in args!
                     if (args.includes('pack') == true) {
                         packNameDataCollection = false;
                         for (let i = 0; i < args.length; i++) {
-                            // Enables data collection when keyword found in index!
                             if (args[i].includes('pack') == true) {
                                 packNameDataCollection = true;
                             }
                             if (args[i].includes('author') == true) {
                                 packNameDataCollection = false;
                             }
-                            // If data collection is enabled and args length is more then one it will start appending!
                             if (packNameDataCollection == true) {
                                 packName = packName + args[i] + ' '
                             }
                         }
-                        // Check if variable contain unnecessary startup word!
                         if (packName.startsWith('pack ')) {
                             packName = `${packName.split('pack ')[1]}`
                         }
                     }
-                    // Check if author keyword is found in args!
                     if (args.includes('author') == true) {
                         authorNameDataCollection = false;
                         for (let i = 0; i < args.length; i++) {
-                            // Enables data collection when keyword found in index!
                             if (args[i].includes('author') == true) {
                                 authorNameDataCollection = true;
                             }
-                            // If data collection is enabled and args length is more then one it will start appending!
                             if (authorNameDataCollection == true) {
                                 authorName = authorName + args[i] + ' '
                             }
-                            // Check if variable contain unnecessary startup word!
                             if (authorName.startsWith('author ')) {
                                 authorName = `${authorName.split('author ')[1]}`
                             }
                         }
                     }
-                    // Check if packName and authorName is empty it will pass default values!
                     if (packName == "") {
                         packName = "MD"
                     }
@@ -863,6 +946,7 @@ const startSock = async () => {
                 ///////////////////////\\\\\\\\\\\\\\\\\\\\\\
                 ////////////////////ADMIN\\\\\\\\\\\\\\\\\\\\\
                 //////////////////////////////////////////////
+                //------------------------ADD-----------------------------//
                 case 'add':
                     if (!isGroup) return;
                     if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) return reply(`❌ kya matlab tum admin nhi ho 🙄`);
@@ -887,6 +971,7 @@ const startSock = async () => {
                         console.log('error', err);
                     }
                     break;
+                //-----------------------------------REMOVE------------------------------------//
                 case 'remove':
                 case 'ban':
                 case 'kick':
@@ -912,7 +997,7 @@ const startSock = async () => {
                         console.log('error', err);
                     }
                     break;
-
+                //-----------------------------------------PROMOTE-------------------------//
                 case 'promote':
                     if (!isGroup) return;
                     if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) return reply(`❌ kya matlab tum admin nhi ho 🙄`);
@@ -934,6 +1019,7 @@ const startSock = async () => {
                         console.log('error', err);
                     }
                     break;
+                //-------------------------------DEMOTE--------------------------------//
                 case 'demote':
                     if (!isGroup) return;
                     if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) return reply(`❌ kya matlab tum admin nhi ho 🙄`);
@@ -962,8 +1048,6 @@ const startSock = async () => {
                 default:
                     if (isGroup)
                         reply(`*Error Not Added All commands*`);
-                    if (!isGroup)
-                        reply(`ʜᴇʟʟᴏ ${mek.messages[0].pushName}\ɴɪ'ᴍ ʙɪᴛʙᴏᴛ ᴀ ᴡʜᴀᴛꜱᴀᴘᴘ ʙᴏᴛ ʙᴜᴛ ɪ ᴅᴏɴ'ᴛ ᴡᴏʀᴋ ɪɴ ᴅɪʀᴇᴄᴛ ᴍᴇꜱꜱᴀɢᴇꜱ (ᴅᴍ). ꜱᴏ, ᴅᴏɴ'ᴛ ꜱᴘᴀᴍ ʜᴇʀᴇ.`)
             }
         }
     });
@@ -985,7 +1069,7 @@ const startSock = async () => {
         console.log("connection update", update);
     });
     // listen for when the auth credentials is updated
-    sock.ev.on("creds.update", saveState)
+    // sock.ev.on("creds.update", saveState)
     return sock;
 };
 startSock();
