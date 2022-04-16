@@ -332,6 +332,8 @@ const startSock = async () => {
                     break;
                 //-------------------------HELP-GUI--------------------------------------//
                 case 'bit':
+                case 'list':
+                case 'menu':
                     HelpGUI(sock, from, mek.messages[0].pushName);
                     break;
                 //------------------------------ADMIN---------------------------------------//
@@ -466,20 +468,20 @@ const startSock = async () => {
                                 )
                             }
                         } else if (res.media_count > 1) {
-                            for (let i; i < res.media_count; i++) {
-                                if (res.links[0].type == "video") {
+                            for (let i = 0; i < res.media_count; i++) {
+                                if (res.links[i].type == "video") {
                                     sock.sendMessage(
                                         from,
                                         {
-                                            video: { url: res.links[0].url }
+                                            video: { url: res.links[i].url }
                                         },
-                                        { quoted: mek.messages[0] }
+                                        { quoted: mek.messages[i] }
                                     )
-                                } else if (res.links[0].type == "image") {
+                                } else if (res.links[i].type == "image") {
                                     sock.sendMessage(
                                         from,
                                         {
-                                            image: { url: res.links[0].url }
+                                            image: { url: res.links[i].url }
                                         },
                                         { quoted: mek.messages[0] }
                                     )
@@ -583,13 +585,14 @@ Name: ${response.name}`
                     //         })
                     //     }
                     const templateButtons = [
-                        { index: 1, urlButton: { displayText: '⭐ Project Link!', url: 'https://github.com/jacktheboss220/myBitBot' } },
-                        { index: 3, quickReplyButton: { displayText: '', id: 'id-like-buttons-message' } },
+                        { index: 1, urlButton: { displayText: '⭐ Project Link!', url: 'https://github.com/jacktheboss220/MyBitBot-MD' } },
+                        { index: 2, urlButton: { displayText: 'Contact Me!', url: 'https://github.com/jacktheboss220/MyBitBot-MD/issues' } },
+                        { index: 3, quickReplyButton: { displayText: '', id: 'id1' } }
                     ]
 
                     const templateMessage = {
-                        text: "Give a star if you like my bot",
-                        footer: 'Hello ' + mek.messages[0].pushName,
+                        text: "ɢɪᴠᴇ ᴀ ꜱᴛᴀʀ ɪꜰ ʏᴏᴜ ʟɪᴋᴇ ᴛʜᴇ ʙᴏᴛ\nꜰᴏᴜɴᴅ ᴀ ʙᴜɢ ᴏʀ ᴇʀʀᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴍᴇ ʙᴇʟᴏᴡ",
+                        footer: 'ᴮᴵᵀᴮᴼᵀ',
                         templateButtons: templateButtons
                     }
                     await sock.sendMessage(from, templateMessage)
