@@ -8,18 +8,8 @@ const { Sticker } = require('wa-sticker-formatter')
 const deepai = require('deepai')
 const videofy = require("videofy")
 const { HelpGUI } = require('./plugins/helpGui')
-/* --------------------------------- SERVER --------------------------------- */
-const express = require("express");
-const app = express();
-app.use(express.urlencoded({ extended: true }));
-const port = process.env.PORT || 8000;
-app.get("/", (req, res) => {
-    res.send("Bot is running.. :)");
-});
-app.listen(port, () => {
-    console.clear();
-    console.log("\nWeb-server running!\n");
-});
+const thiccysapi = require('@phaticusthiccy/open-apis'); // Import NPM Package
+//-------------------------------------Baileys-----------------------//
 const {
     default: makeWASocket,
     DisconnectReason,
@@ -33,7 +23,6 @@ const {
     MessageOptions,
     Mimetype
 } = require("@adiwajshing/baileys");
-
 //-----------------------------------CONST--------------------------//
 const OwnerNumb = process.env.OWNER_NUMB + '@s.whatsapp.net';
 const prefix = '.';
@@ -46,22 +35,86 @@ let ig = new igApi(INSTA_API_KEY);
 ig.setCookie(INSTA_API_KEY);
 const deepAI = process.env.DEEPAI_KEY;
 //---------------------------------------------------------------------------------------//
+/* --------------------------------- SERVER --------------------------------- */
+// const express = require("express");
+// const app = express();
+// app.use(express.urlencoded({ extended: true }));
+// const port = process.env.PORT || 8000;
+// app.get("/", (req, res) => {
+//     res.send("Bot is running.. :)");
+// });
+// app.listen(port, () => {
+//     console.clear();
+//     console.log("\nWeb-server running!\n");
+// });
+// const { MongoClient, ServerApiVersion } = require('mongodb');
+// const uri = "mongodb+srv://mahesh:mahesh123@myauthdb.edxmu.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+// const mdClient = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+// mdClient.connect();
+// console.log("Mongo DB Connected");
+// // the store maintains the data of the WA connection in memory
+// // can be written out to a file & read from it
+// const store = makeInMemoryStore({
+//     logger: P().child({ level: "debug", stream: "store" }),
+// });
+
+// try {
+//     mdClient.connect((err) => {
+//         let collection2 = mdClient
+//             .db("whatsappSession")
+//             .collection("whatsappSessionAuth");
+
+//         collection2.find({ _id: 1 }).toArray(function (err, result) {
+//             if (err) throw err;
+//             let sessionAuth = result[0]["sessionAuth"];
+//             sessionAuth = JSON.parse(sessionAuth);
+//             sessionAuth = JSON.stringify(sessionAuth);
+//             //console.log(session);
+//             fs.writeFileSync("./auth_info_multi.json", sessionAuth);
+//         });
+//     });
+//     console.log("Local file written");
+// } catch (err) {
+//     console.error("Local file writing error :", err);
+// }
+
+// store.readFromFile("./baileys_store_multi.json");
+// // save every 10s
+// setInterval(() => {
+//     store.writeToFile("./baileys_store_multi.json");
+//     try {
+//         let sessionDataAuth = fs.readFileSync("./auth_info_multi.json");
+//         sessionDataAuth = JSON.parse(sessionDataAuth);
+//         sessionDataAuth = JSON.stringify(sessionDataAuth);
+//         //console.log(sessionData);
+//         let collection2 = mdClient
+//             .db("whatsappSession")
+//             .collection("whatsappSessionAuth");
+
+//         collection2.updateOne(
+//             { _id: 1 },
+//             { $set: { sessionAuth: sessionDataAuth } }
+//         );
+//         //console.log("db updated");
+//     } catch (err) {
+//         console.log("Db updation error : ", err);
+//     }
+// }, 20_000);
 
 let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
 const logger = MAIN_LOGGER.child({});
 logger.level = "trace";
 
-const store = makeInMemoryStore({ logger });
+// const store = makeInMemoryStore({ logger });
 //-----------------------------------------FILES------------------------------------//
-store.readFromFile("./baileys_store_multi.json");
-// save every 10s
-setInterval(() => {
-    store.writeToFile("./baileys_store_multi.json");
-}, 10_000);
+// store.readFromFile("./baileys_store_multi.json");
+// // save every 10s
+// setInterval(() => {
+//     store.writeToFile("./baileys_store_multi.json");
+// }, 10_000);
 
 // const { getAuthMD, setAuthMD } = require("./DB/authMD");
 // let state = getAuthMD();
-
 const { state, saveState } = useSingleFileAuthState("./auth_info_multi.json");
 // start a connection
 const startSock = async () => {
@@ -75,7 +128,10 @@ const startSock = async () => {
         printQRInTerminal: true,
         auth: state,
     });
-    store.bind(sock.ev);
+    // listen for when the auth credentials is updated
+    sock.ev.on("creds.update", saveState)
+    // return sock;
+    // store.bind(sock.ev);
     const sendMessageWTyping = async (msg, jid) => {
         await sock.presenceSubscribe(jid);
         await delay(500);
@@ -101,12 +157,6 @@ const startSock = async () => {
                 OwnerSend(`*Action:* ${anu.action} \n*Group:* ${anu.id} \n*Grp Name:* ${res.subject} \n*Participants:* ${anu.participants[0]}`);
             })
             console.log(anu);
-            // if (anu.action == 'add') {
-            //     OwnerSend(`*Group:* ${anu.jid} \n*Grp Name:* ${mdata.subject} \n*Participants:* ${anu.participants[0]}`);
-            // }
-            // if (anu.action == 'remove') {
-            //     OwnerSend(`*Group:* ${anu.jid} \n*Grp Name:* ${mdata.subject} \n*Participants:* ${anu.participants[0]}`);
-            // }
         } catch (e) {
             console.log(e)
         }
@@ -366,21 +416,43 @@ const startSock = async () => {
                     break;
                 //-------------------------TERMINAL------------------------------//
                 case 'term':
-                    if (!allowedNumbs.includes(senderNumb)) {
-                        reply("```Sorry only for moderators```")
-                        return;
-                    }
-                    var k = args.join(' ');
-                    console.log(k);
-                    try {
-                        var store = await eval(k);
-                        console.log(store);
-                        var store2 = JSON.stringify(store);
-                        reply(`${store2}`);
-                    } catch (err) {
-                        reply(`Error See Log WhatsApp Number to know more`);
-                        return OwnerSend('Term: ' + err);
-                    }
+                    // if (!allowedNumbs.includes(senderNumb)) {
+                    //     reply("```Sorry only for moderators```")
+                    //     return;
+                    // }
+                    // var k = args.join(' ');
+                    // console.log(k);
+                    // try {
+                    //     var store = await eval(k);
+                    //     console.log(store);
+                    //     var store2 = JSON.stringify(store);
+                    //     reply(`${store2}`);
+                    // } catch (err) {
+                    //     reply(`Error See Log WhatsApp Number to know more`);
+                    //     return OwnerSend('Term: ' + err);
+                    // }
+                    thiccysapi.glowtext({
+                        text: "This", // Required!
+                        text2: "is", // Optional
+                        text3: "a test", // Optional
+                        font_style: "hindi", // Optional
+                        font_size: "m", // Optional
+                        font_colour: "7", // Optional
+                        bgcolour: "0", // Optional
+                        glow_halo: "0", // Optional
+                        non_trans: "false", // Optional
+                        glitter_border: "true", // Optional
+                        anim_type: "none", // Optional
+                        sumbit_type: "text" // Optional
+                    }).then(async (data) => {
+                        sock.sendMessage(
+                            from,
+                            {
+                                image: { url: data.image },
+                                mimetype: 'image/png'
+                            }
+                        )
+                    });
                     break;
                 //---------------------------MY-NAME--------------------------//
                 case 'my':
@@ -1177,8 +1249,5 @@ Name: ${response.name}`
         }
         console.log("connection update", update);
     });
-    // listen for when the auth credentials is updated
-    sock.ev.on("creds.update", saveState)
-    return sock;
 };
 startSock();
