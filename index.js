@@ -128,6 +128,23 @@ const startSock = async () => {
         printQRInTerminal: true,
         auth: state,
     });
+    //------------------------connection.update------------------------------//
+    sock.ev.on("connection.update", (update) => {
+        const { connection, lastDisconnect } = update;
+        if (connection === "close") {
+            // reconnect if not logged out
+            if (
+                (lastDisconnect.error &&
+                    lastDisconnect.error.output &&
+                    lastDisconnect.error.output.statusCode) !== DisconnectReason.loggedOut
+            ) {
+                startSock();
+            } else {
+                console.log("Connection closed. You are logged out.");
+            }
+        }
+        console.log("connection update", update);
+    });
     // listen for when the auth credentials is updated
     sock.ev.on("creds.update", saveState)
     // return sock;
@@ -445,7 +462,7 @@ const startSock = async () => {
                         anim_type: "none", // Optional
                         sumbit_type: "text" // Optional
                     }).then(async (data) => {
-                        sock.sendMessage(
+                        await sock.sendMessage(
                             from,
                             {
                                 image: { url: data.image },
@@ -462,12 +479,12 @@ const startSock = async () => {
                 //----------------------JOKE----------------------------//
                 case 'joke':
                     if (!isGroup) return;
-                    jokeFun(args[0]);
+                    await jokeFun(args[0]);
                     break;
                 //-------------------------------ADVICE----------------------//
                 case 'advice':
                     if (!isGroup) return;
-                    getRandomAD();
+                    await getRandomAD();
                     break;
                 //-------------------HORO-----------------------//
                 case 'horo':
@@ -627,41 +644,11 @@ Name: ${response.name}`
 
                 //------------------------GET_DATA-------------------------------//
                 case 'dev':
-                    //     if (!isGroup) return;
-                    //     if (mek.messages[0].message.extendedTextMessage) {
-                    //         let downloadFilePath;
-                    //         if (mek.messages[0].message.imageMessage) {
-                    //             downloadFilePath = mek.messages[0].message.stickerMessage;
-                    //         } else {
-                    //             downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.stickerMessage;
-                    //         }
-                    //         const stream = await downloadContentFromMessage(downloadFilePath, 'sticker');
-                    //         let buffer = Buffer.from([])
-                    //         for await (const chunk of stream) {
-                    //             buffer = Buffer.concat([buffer, chunk])
-                    //         }
-                    //         await writeFile('./my.gif', buffer)
-                    //         var opts = {
-                    //             rate: 20,
-                    //             codec: 'libx264'
-                    //         };
-                    //         await videofy('./my.gif', './gif.mp4', opts, function (err) {
-                    //             if (err) throw err;
-                    //             sock.sendMessage(
-                    //                 from,
-                    //                 {
-                    //                     video: fs.readFileSync("./gif.mp4"),
-                    //                     gifPlayback: true
-                    //                 }
-                    //             )
-                    //         })
-                    //     }
                     const templateButtons = [
                         { index: 1, urlButton: { displayText: '⭐ Project Link!', url: 'https://github.com/jacktheboss220/MyBitBot-MD' } },
                         { index: 2, urlButton: { displayText: 'Contact Me!', url: 'https://github.com/jacktheboss220/MyBitBot-MD/issues' } },
                         { index: 3, quickReplyButton: { displayText: '', id: 'id1' } }
                     ]
-
                     const templateMessage = {
                         text: "ɢɪᴠᴇ ᴀ ꜱᴛᴀʀ ɪꜰ ʏᴏᴜ ʟɪᴋᴇ ᴛʜᴇ ʙᴏᴛ\nꜰᴏᴜɴᴅ ᴀ ʙᴜɢ ᴏʀ ᴇʀʀᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴍᴇ ʙᴇʟᴏᴡ",
                         footer: 'ᴮᴵᵀᴮᴼᵀ',
@@ -963,7 +950,7 @@ Name: ${response.name}`
                         await writeFile(media, buffer)
                         ran = getRandom('.webp')
                         reply('⌛Changing media to sticker⏳')//⌛Ruk Bhai..Kar raha ⏳
-                        await ffmpeg(`./${media}`).input(media).on('error', function (err) {
+                        ffmpeg(`./${media}`).input(media).on('error', function (err) {
                             fs.unlinkSync(media)
                             console.log(`Error : ${err}`)
                             reply('_❌ ERROR: Failed to convert image into sticker! ❌_')
@@ -1012,7 +999,7 @@ Name: ${response.name}`
                         await writeFile(media, buffer)
                         ran = getRandom('.webp')
                         reply('⌛Changing media file to Sticker⏳')//⌛ Ho raha Thoda wait karle... ⏳
-                        await ffmpeg(`./${media}`).inputFormat(media.split('.')[1]).on('error', function (err) {
+                        ffmpeg(`./${media}`).inputFormat(media.split('.')[1]).on('error', function (err) {
                             fs.unlinkSync(media)
                             mediaType = media.endsWith('.mp4') ? 'video' : 'gif'
                             reply(`_❌ ERROR: Failed to convert ${mediaType} to sticker! ❌_`)
@@ -1231,23 +1218,6 @@ Name: ${response.name}`
                         reply(`*Error Not Added All commands*`);
             }
         }
-    });
-    //------------------------connection.update------------------------------//
-    sock.ev.on("connection.update", (update) => {
-        const { connection, lastDisconnect } = update;
-        if (connection === "close") {
-            // reconnect if not logged out
-            if (
-                (lastDisconnect.error &&
-                    lastDisconnect.error.output &&
-                    lastDisconnect.error.output.statusCode) !== DisconnectReason.loggedOut
-            ) {
-                startSock();
-            } else {
-                console.log("Connection closed. You are logged out.");
-            }
-        }
-        console.log("connection update", update);
     });
 };
 startSock();
