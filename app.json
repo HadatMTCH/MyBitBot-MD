@@ -1,0 +1,41 @@
+{
+    "name": "myBitBot-MD",
+    "description": "nodejs whatsapp bot",
+    "logo": "https://i.ibb.co/sWmwD0k/e0bslrup.jpg",
+    "repository": "https://github.com/jacktheboss220/mBitBot-Updated",
+    "keywords": [
+        "whatsapp-bot",
+        "myBitBot",
+        "multi-device"
+    ],
+    "env": {
+        "REMOVE_BG_KEY": {
+            "description": "Get from remove.bg"
+        },
+        "DEEPAI_KEY:": {
+            "description": "Get your api key from deepai.org"
+        },
+        "myNumber": {
+            "description": "Enter your number to get all update"
+        },
+        "INSTA_API_KEY": {
+            "description": "Enter insta session key. get from https://replit.com/@JackJK/insta-session"
+        }
+    },
+    "buildpacks": [
+        {
+            "url": "https://github.com/heroku/heroku-buildpack-nodejs.git"
+        },
+        {
+            "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
+        }
+    ],
+    "addons": [
+        {
+            "plan": "heroku-postgresql",
+            "options": {
+                "version": "13"
+            }
+        }
+    ]
+}
