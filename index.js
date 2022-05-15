@@ -9,7 +9,7 @@ const deepai = require('deepai')
 const videofy = require("videofy")
 const { HelpGUI } = require('./plugins/helpGui')
 const thiccysapi = require('@phaticusthiccy/open-apis'); // Import NPM Package
-//-------------------------------------Baileys-----------------------//
+//----------------------------------Baileys-----------------------//
 const {
     default: makeWASocket,
     DisconnectReason,
@@ -36,101 +36,250 @@ ig.setCookie(INSTA_API_KEY);
 const deepAI = process.env.DEEPAI_KEY;
 //---------------------------------------------------------------------------------------//
 /* --------------------------------- SERVER --------------------------------- */
-// const express = require("express");
-// const app = express();
-// app.use(express.urlencoded({ extended: true }));
-// const port = process.env.PORT || 8000;
-// app.get("/", (req, res) => {
-//     res.send("Bot is running.. :)");
-// });
-// app.listen(port, () => {
-//     console.clear();
-//     console.log("\nWeb-server running!\n");
-// });
-// const { MongoClient, ServerApiVersion } = require('mongodb');
-// const uri = "mongodb+srv://mahesh:mahesh123@myauthdb.edxmu.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
-// const mdClient = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-// mdClient.connect();
-// console.log("Mongo DB Connected");
-// // the store maintains the data of the WA connection in memory
-// // can be written out to a file & read from it
-// const store = makeInMemoryStore({
-//     logger: P().child({ level: "debug", stream: "store" }),
-// });
-
-// try {
-//     mdClient.connect((err) => {
-//         let collection2 = mdClient
-//             .db("whatsappSession")
-//             .collection("whatsappSessionAuth");
-
-//         collection2.find({ _id: 1 }).toArray(function (err, result) {
-//             if (err) throw err;
-//             let sessionAuth = result[0]["sessionAuth"];
-//             sessionAuth = JSON.parse(sessionAuth);
-//             sessionAuth = JSON.stringify(sessionAuth);
-//             //console.log(session);
-//             fs.writeFileSync("./auth_info_multi.json", sessionAuth);
-//         });
-//     });
-//     console.log("Local file written");
-// } catch (err) {
-//     console.error("Local file writing error :", err);
-// }
-
-// store.readFromFile("./baileys_store_multi.json");
-// // save every 10s
-// setInterval(() => {
-//     store.writeToFile("./baileys_store_multi.json");
-//     try {
-//         let sessionDataAuth = fs.readFileSync("./auth_info_multi.json");
-//         sessionDataAuth = JSON.parse(sessionDataAuth);
-//         sessionDataAuth = JSON.stringify(sessionDataAuth);
-//         //console.log(sessionData);
-//         let collection2 = mdClient
-//             .db("whatsappSession")
-//             .collection("whatsappSessionAuth");
-
-//         collection2.updateOne(
-//             { _id: 1 },
-//             { $set: { sessionAuth: sessionDataAuth } }
-//         );
-//         //console.log("db updated");
-//     } catch (err) {
-//         console.log("Db updation error : ", err);
-//     }
-// }, 20_000);
+const express = require("express");
+const app = express();
+app.use(express.urlencoded({ extended: true }));
+const port = process.env.PORT || 8000;
+app.get("/", (req, res) => {
+    res.send("Bot is running.. :)");
+});
+app.listen(port, () => {
+    // console.clear();
+    console.log("\nWeb-server running!\n");
+});
 
 let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
 const logger = MAIN_LOGGER.child({});
-logger.level = "trace";
+logger.level = 'warn';
 
-// const store = makeInMemoryStore({ logger });
-//-----------------------------------------FILES------------------------------------//
-// store.readFromFile("./baileys_store_multi.json");
-// // save every 10s
-// setInterval(() => {
-//     store.writeToFile("./baileys_store_multi.json");
-// }, 10_000);
-
-// const { getAuthMD, setAuthMD } = require("./DB/authMD");
-// let state = getAuthMD();
 const { state, saveState } = useSingleFileAuthState("./auth_info_multi.json");
 // start a connection
+console.log('state : ', state.creds);
+const db = require('./database');
+let cred, auth_row_count;
+async function fetchauth() {
+    try {
+        auth_result = await db.query('select * from auth;');//checking auth table
+        console.log('Fetching login data...')
+        auth_row_count = await auth_result.rowCount;
+        let data = auth_result.rows[0];
+        // console.log("data ",data);
+        if (auth_row_count == 0) {
+            console.log('No login data found!')
+        } else {
+            console.log('Login data found!');
+            cred = {
+                creds: {
+                    noiseKey: {
+                        private: data.noicekeyprvt,
+                        public: data.noicekeypub
+                    },
+                    signedIdentityKey: {
+                        private: data.signedidentitykeyprvt,
+                        public: data.signedidentitykeypub
+                    },
+                    signedPreKey: {
+                        keyPair: {
+                            private: data.signedprekeypairprv,
+                            public: data.signedprekeypairpub
+                        },
+                        signature: data.signedprekeysignature,
+                        keyId: Number(data.signedprekeyidb)
+                    },
+                    registrationId: Number(data.registrationidb),
+                    advSecretKey: data.advsecretkeyb,
+                    nextPreKeyId: Number(data.nextprekeyidb),
+                    firstUnuploadedPreKeyId: Number(data.firstunuploadedprekeyidb),
+                    serverHasPreKeys: Boolean(data.serverhasprekeysb),
+                    account: {
+                        details: data.accountdetailsb,
+                        accountSignatureKey: data.accountsignaturekeyb,
+                        accountSignature: data.accountsignatureb,
+                        deviceSignature: data.devicesignatureb
+                    },
+                    me: {
+                        id: data.meidb,
+                        verifiedName: data.meverifiednameb,
+                        name: data.menameb
+                    },
+                    signalIdentities: [
+                        {
+                            identifier: {
+                                name: data.signalidentitiesnameb,
+                                deviceId: Number(data.signalidentitiesdeviceidb)
+                            },
+                            identifierKey: data.signalidentitieskey
+                        }
+                    ],
+                    // lastAccountSyncTimestamp: Number(data.lastaccountsynctimestampb),
+                    myAppStateKeyId: data.myappstatekeyidb
+                },
+                keys: state.keys
+            }
+            //---------------noiceKey----------------//
+            let noiceKeyPrvt = [], noiceKeyPub = [];
+            let noiceKeyPrvtB = cred.creds.noiseKey.private.slice(1).split("+");
+            let noiceKeyPubB = cred.creds.noiseKey.public.slice(1).split("+");
+            for (let i = 0; i < noiceKeyPrvtB.length; i++) {
+                noiceKeyPrvt.push(parseInt(noiceKeyPrvtB[i]));
+            }
+            for (let i = 0; i < noiceKeyPubB.length; i++) {
+                noiceKeyPub.push(parseInt(noiceKeyPubB[i]));
+            }
+            cred.creds.noiseKey.private = Buffer.from(noiceKeyPrvt);
+            cred.creds.noiseKey.public = Buffer.from(noiceKeyPub);
+            //------------------------------------------//
+            //----------------signedIdentityKey---------//
+            let signedIdentityKeyPrvt = [], signedIdentityKeyPub = [];
+            let signedIdentityKeyPrvtB = cred.creds.signedIdentityKey.private.slice(1).split("+");
+            let signedIdentityKeyPubB = cred.creds.signedIdentityKey.public.slice(1).split("+");
+            for (let i = 0; i < signedIdentityKeyPrvtB.length; i++) {
+                signedIdentityKeyPrvt.push(parseInt(signedIdentityKeyPrvtB[i]));
+            }
+            for (let i = 0; i < signedIdentityKeyPubB.length; i++) {
+                signedIdentityKeyPub.push(parseInt(signedIdentityKeyPubB[i]));
+            }
+            cred.creds.signedIdentityKey.private = Buffer.from(signedIdentityKeyPrvt);
+            cred.creds.signedIdentityKey.public = Buffer.from(signedIdentityKeyPub);
+            //------------------------------------------//
+            //----------------signedPreKey------------------//
+            let signedPreKeyPairPrv = [], signedPreKeyPairPub = [];
+            let signedPreKeyPairPrvB = cred.creds.signedPreKey.keyPair.private.slice(1).split("+");
+            let signedPreKeyPairPubB = cred.creds.signedPreKey.keyPair.public.slice(1).split("+");
+            for (let i = 0; i < signedPreKeyPairPrvB.length; i++) {
+                signedPreKeyPairPrv.push(parseInt(signedPreKeyPairPrvB[i]));
+            }
+            for (let i = 0; i < signedPreKeyPairPubB.length; i++) {
+                signedPreKeyPairPub.push(parseInt(signedPreKeyPairPubB[i]));
+            }
+            cred.creds.signedPreKey.keyPair.private = Buffer.from(signedPreKeyPairPrv);
+            cred.creds.signedPreKey.keyPair.public = Buffer.from(signedPreKeyPairPub);
+            //------------------------------------------//
+            let signedPreKeySignature = [];
+            let signedPreKeySignatureB = cred.creds.signedPreKey.signature.slice(1).split("+");
+            for (let i = 0; i < signedPreKeySignatureB.length; i++) {
+                signedPreKeySignature.push(parseInt(signedPreKeySignatureB[i]));
+            }
+            cred.creds.signedPreKey.signature = Buffer.from(signedPreKeySignature);
+            //-----------------------------------------------//
+            //---------------------------signalIdentities-----//
+            let signalIdentitiesKey = [];
+            let signalIdentitiesKeyB = cred.creds.signalIdentities[0].identifierKey.slice(1).split("+");
+            for (let i = 0; i < signalIdentitiesKeyB.length; i++) {
+                signalIdentitiesKey.push(parseInt(signalIdentitiesKeyB[i]));
+            }
+            cred.creds.signalIdentities[0].identifierKey = Buffer.from(signalIdentitiesKey);
+            // console.log("Auth : ", cred.creds.signalIdentities);
+            //---------------------------------------------------//
+        }
+    } catch (err) {
+        console.log('Creating database...')//if login fail create a db
+        await db.query('CREATE TABLE auth(noiceKeyPrvt text, noiceKeyPub text, signedIdentityKeyPrvt text, signedIdentityKeyPub text, signedPreKeyPairPrv text, signedPreKeyPairPub text, signedPreKeySignature text, signedPreKeyIdB text, registrationIdB text, advSecretKeyB text, nextPreKeyIdB text, firstUnuploadedPreKeyIdB text, serverHasPreKeysB text, accountdetailsB text, accountSignatureKeyB text, accountSignatureB text, deviceSignatureB text, meIdB text, meverifiedNameB text, menameB text, signalIdentitiesNameB text, signalIdentitiesDeviceIDB text, signalIdentitiesKey text, lastAccountSyncTimestampB text, myAppStateKeyIdB text);');
+        await fetchauth();
+    }
+}
+// console.log(cred);
 const startSock = async () => {
     // fetch latest version of WA Web
     const { version, isLatest } = await fetchLatestBaileysVersion();
     console.log(`using WA v${version.join(".")}, isLatest: ${isLatest}`);
     let noLogs = P({ level: "silent" }); //to hide the chat logs
+    await fetchauth();
     const sock = makeWASocket({
         version,
         logger: noLogs,
         printQRInTerminal: true,
-        auth: state,
+        auth: cred,
     });
     //------------------------connection.update------------------------------//
     sock.ev.on("connection.update", (update) => {
         const { connection, lastDisconnect } = update;
+        if (connection === 'open') {
+            console.log('Connected');
+            try {
+                //---------------noiceKey----------------//
+                let noiceKeyPrvt = '', noiceKeyPub = '';
+                let noiceKeyPrvtB = state.creds.noiseKey.private.toJSON().data;
+                let noiceKeyPubB = state.creds.noiseKey.public.toJSON().data;
+                for (let i = 0; i < noiceKeyPrvtB.length; i++) {
+                    noiceKeyPrvt += '+' + noiceKeyPrvtB[i].toString();
+                }
+                for (let i = 0; i < noiceKeyPubB.length; i++) {
+                    noiceKeyPub += '+' + noiceKeyPubB[i].toString();
+                }
+                //------------------------------------------//
+                //----------------signedIdentityKey---------//
+                let signedIdentityKeyPrvt = '', signedIdentityKeyPub = '';
+                let signedIdentityKeyPrvtB = state.creds.signedIdentityKey.private.toJSON().data;
+                let signedIdentityKeyPubB = state.creds.signedIdentityKey.public.toJSON().data;
+                for (let i = 0; i < signedIdentityKeyPrvtB.length; i++) {
+                    signedIdentityKeyPrvt += '+' + signedIdentityKeyPrvtB[i].toString();
+                }
+                for (let i = 0; i < signedIdentityKeyPubB.length; i++) {
+                    signedIdentityKeyPub += '+' + signedIdentityKeyPubB[i].toString();
+                }
+                //------------------------------------------//
+                //----------------signedPreKeyPair--------------//
+                let signedPreKeyPairPrv = '', signedPreKeyPairPub = '';
+                let signedPreKeyPairPrvB = state.creds.signedPreKey.keyPair.private;
+                let signedPreKeyPairPubB = state.creds.signedPreKey.keyPair.public;
+                for (let i = 0; i < signedPreKeyPairPrvB.length; i++) {
+                    signedPreKeyPairPrv += '+' + signedPreKeyPairPrvB[i].toString();
+                }
+                for (let i = 0; i < signedPreKeyPairPubB.length; i++) {
+                    signedPreKeyPairPub += '+' + signedPreKeyPairPubB[i].toString();
+                }
+                //------------------------------------------//
+                //------------------signedPreKeySignature**---//
+                let signedPreKeySignature = '';
+                let signedPreKeySignatureB = state.creds.signedPreKey.signature;
+                for (let i = 0; i < signedPreKeySignatureB.length; i++) {
+                    signedPreKeySignature += '+' + signedPreKeySignatureB[i].toString();
+                }
+                let signedPreKeyIdB = state.creds.signedPreKey.keyId;
+                //---------------------------------------------//
+                //------------------AutoKeys--------------------//
+                let registrationIdB = state.creds.registrationId;
+                let advSecretKeyB = state.creds.advSecretKey;
+                let nextPreKeyIdB = state.creds.nextPreKeyId;
+                let firstUnuploadedPreKeyIdB = state.creds.firstUnuploadedPreKeyId;
+                let serverHasPreKeysB = state.creds.serverHasPreKeys;
+                //-----------------------------------------------//
+                //---------------------account-----------------//
+                let accountdetailsB = state.creds.account.details;
+                let accountSignatureKeyB = state.creds.account.accountSignatureKey;
+                let accountSignatureB = state.creds.account.accountSignature;
+                let deviceSignatureB = state.creds.account.deviceSignature;
+                //----------------------ME------------------------//
+                let meIdB = state.creds.me.id;
+                let meverifiedNameB = state.creds.me.verifiedName;
+                let menameB = state.creds.me.name;
+                //--------------------------------------------------//
+                //----------------------signalIdentities------------//
+                let signalIdentitiesNameB = state.creds.signalIdentities[0].identifier.name;
+                let signalIdentitiesDeviceIDB = state.creds.signalIdentities[0].identifier.deviceId;
+                let signalIdentitiesKey = '';
+                let signalIdentitiesKeyB = state.creds.signalIdentities[0].identifierKey.toJSON().data;
+                for (let i = 0; i < signalIdentitiesKeyB.length; i++) {
+                    signalIdentitiesKey += '+' + signalIdentitiesKeyB[i].toString();
+                }
+                //----------------------------------------------------//
+                let lastAccountSyncTimestampB = state.creds.lastAccountSyncTimestamp;
+                let myAppStateKeyIdB = state.creds.myAppStateKeyId;
+                // INSERT / UPDATE LOGIN DATA
+                if (auth_row_count == 0) {
+                    console.log('Inserting login data...');
+                    db.query('INSERT INTO auth VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25);', [noiceKeyPrvt, noiceKeyPub, signedIdentityKeyPrvt, signedIdentityKeyPub, signedPreKeyPairPrv, signedPreKeyPairPub, signedPreKeySignature, signedPreKeyIdB, registrationIdB, advSecretKeyB, nextPreKeyIdB, firstUnuploadedPreKeyIdB, serverHasPreKeysB, accountdetailsB, accountSignatureKeyB, accountSignatureB, deviceSignatureB, meIdB, meverifiedNameB, menameB, signalIdentitiesNameB, signalIdentitiesDeviceIDB, signalIdentitiesKey, lastAccountSyncTimestampB, myAppStateKeyIdB]);
+                    db.query('commit;');
+                    console.log('New login data inserted!');
+                } else {
+                    console.log('Updating login data....');
+                    db.query('UPDATE auth SET noiceKeyPrvt = $1, noiceKeyPub = $2, signedIdentityKeyPrvt = $3, signedIdentityKeyPub = $4, signedPreKeyPairPrv = $5, signedPreKeyPairPub = $6, signedPreKeySignature = $7, signedPreKeyIdB = $8, registrationIdB = $9, advSecretKeyB = $10, nextPreKeyIdB = $11, firstUnuploadedPreKeyIdB = $12, serverHasPreKeysB = $13, accountdetailsB = $14, accountSignatureKeyB = $15, accountSignatureB = $16, deviceSignatureB = $17, meIdB = $18, meverifiedNameB =$19, menameB =$20, signalIdentitiesNameB =$21, signalIdentitiesDeviceIDB =$22, signalIdentitiesKey =$23, lastAccountSyncTimestampB =$24, myAppStateKeyIdB =$25;', [noiceKeyPrvt, noiceKeyPub, signedIdentityKeyPrvt, signedIdentityKeyPub, signedPreKeyPairPrv, signedPreKeyPairPub, signedPreKeySignature, signedPreKeyIdB, registrationIdB, advSecretKeyB, nextPreKeyIdB, firstUnuploadedPreKeyIdB, serverHasPreKeysB, accountdetailsB, accountSignatureKeyB, accountSignatureB, deviceSignatureB, meIdB, meverifiedNameB, menameB, signalIdentitiesNameB, signalIdentitiesDeviceIDB, signalIdentitiesKey, lastAccountSyncTimestampB, myAppStateKeyIdB])
+                    db.query('commit;');
+                    console.log('Login data updated!');
+                }
+            } catch { }
+        }
         if (connection === "close") {
             // reconnect if not logged out
             if (
@@ -146,7 +295,7 @@ const startSock = async () => {
         console.log("connection update", update);
     });
     // listen for when the auth credentials is updated
-    sock.ev.on("creds.update", saveState)
+    // sock.ev.on("creds.update", saveState)
     // return sock;
     // store.bind(sock.ev);
     const sendMessageWTyping = async (msg, jid) => {
@@ -159,6 +308,7 @@ const startSock = async () => {
             { text: msg });
     };
     //-------------------------OWNER-SEND------------------------------------//
+
     const OwnerSend = (teks) => {
         sock.sendMessage(
             OwnerNumb,
@@ -220,6 +370,7 @@ const startSock = async () => {
     //---------------------------------------messages.upsert----------------------------------//
     sock.ev.on("messages.upsert", async (mek) => {
         const msg = JSON.parse(JSON.stringify(mek)).messages[0];
+        // if (mek.type !== 'notify') return;
         // console.log('msg ', msg.message);
         if (!msg.message) return;
         if (msg.key.fromMe) return;
@@ -253,18 +404,14 @@ const startSock = async () => {
 
 
         //----------------------------BODY take message part---------------------------------------//
-        let body = type === "conversation" &&
-            msg.message.conversation.startsWith(prefix)
-            ? msg.message.conversation
-            : type == "imageMessage" &&
+        let body = type === "conversation" && msg.message.conversation.startsWith(prefix)
+            ? msg.message.conversation : type == "imageMessage" &&
                 msg.message.imageMessage.caption &&
                 msg.message.imageMessage.caption.startsWith(prefix)
-                ? msg.message.imageMessage.caption
-                : type == "videoMessage" &&
+                ? msg.message.imageMessage.caption : type == "videoMessage" &&
                     msg.message.videoMessage.caption &&
                     msg.message.videoMessage.caption.startsWith(prefix)
-                    ? msg.message.videoMessage.caption
-                    : type == "extendedTextMessage" &&
+                    ? msg.message.videoMessage.caption : type == "extendedTextMessage" &&
                         msg.message.extendedTextMessage.text &&
                         msg.message.extendedTextMessage.text.startsWith(prefix)
                         ? msg.message.extendedTextMessage.text
@@ -273,8 +420,7 @@ const startSock = async () => {
                             : type == "templateButtonReplyMessage"
                                 ? msg.message.templateButtonReplyMessage.selectedDisplayText
                                 : type == "listResponseMessage"
-                                    ? msg.message.listResponseMessage.title
-                                    : "";
+                                    ? msg.message.listResponseMessage.title : "";
         //----------------------------------------------------------------------------------------//
         if (body[1] == " ") body = body[0] + body.slice(2);
         const evv = body.trim().split(/ +/).slice(1).join(' ');
@@ -433,53 +579,35 @@ const startSock = async () => {
                     break;
                 //-------------------------TERMINAL------------------------------//
                 case 'term':
-                    // if (!allowedNumbs.includes(senderNumb)) {
-                    //     reply("```Sorry only for moderators```")
-                    //     return;
-                    // }
-                    // var k = args.join(' ');
-                    // console.log(k);
-                    // try {
-                    //     var store = await eval(k);
-                    //     console.log(store);
-                    //     var store2 = JSON.stringify(store);
-                    //     reply(`${store2}`);
-                    // } catch (err) {
-                    //     reply(`Error See Log WhatsApp Number to know more`);
-                    //     return OwnerSend('Term: ' + err);
-                    // }
-                    thiccysapi.glowtext({
-                        text: "This", // Required!
-                        text2: "is", // Optional
-                        text3: "a test", // Optional
-                        font_style: "hindi", // Optional
-                        font_size: "m", // Optional
-                        font_colour: "7", // Optional
-                        bgcolour: "0", // Optional
-                        glow_halo: "0", // Optional
-                        non_trans: "false", // Optional
-                        glitter_border: "true", // Optional
-                        anim_type: "none", // Optional
-                        sumbit_type: "text" // Optional
-                    }).then(async (data) => {
-                        await sock.sendMessage(
-                            from,
-                            {
-                                image: { url: data.image },
-                                mimetype: 'image/png'
-                            }
-                        )
-                    });
+                    if (!allowedNumbs.includes(senderNumb)) {
+                        reply("```Sorry only for moderators```")
+                        return;
+                    }
+                    var k = args.join(' ');
+                    console.log(k);
+                    try {
+                        var store = await eval(k);
+                        console.log(store);
+                        var store2 = JSON.stringify(store);
+                        reply(`${store2}`);
+                    } catch (err) {
+                        reply(`Error See Log WhatsApp Number to know more`);
+                        return OwnerSend('Term: ' + err);
+                    }
                     break;
                 //---------------------------MY-NAME--------------------------//
                 case 'my':
                     if (!isGroup) return;
                     reply(mek.messages[0].pushName)
                     break;
+                //--------------------COUNT--------------------------//
+                case 'count':
+                    
+                    break
                 //----------------------JOKE----------------------------//
                 case 'joke':
                     if (!isGroup) return;
-                    await jokeFun(args[0]);
+                    await jokeFun(args[0].slice(0, 1).toUpperCase() + args[0].slice(1));
                     break;
                 //-------------------------------ADVICE----------------------//
                 case 'advice':
@@ -1076,12 +1204,20 @@ Name: ${response.name}`
                     if (mek.messages[0].message.extendedTextMessage) {
                         if (mek.messages[0].message.extendedTextMessage.contextInfo.participant)
                             taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
-                        console.log(taggedJid);
+                        try {
+                            await sock.groupParticipantsUpdate(
+                                from,
+                                [taggedJid],
+                                "add"
+                            )
+                        } catch (err) {
+                            console.log('error', err);
+                        }
                     }
                     else {
                         if (!args[0]) return reply(`❌ give number or tag on message`);
+                        if (args[0].startsWith("+")) args[0].slice(1);
                         taggedJid = evv + '@s.whatsapp.net';
-                        console.log(taggedJid);
                     }
                     try {
                         await sock.groupParticipantsUpdate(
@@ -1201,6 +1337,194 @@ Name: ${response.name}`
                         reply(`✔️ *Allowed all member can send Message*`);
                     } else {
                         return;
+                    }
+                    break;
+                //--------------------------------BLOCK---------------------------//
+                case 'block':
+                    if (!mek.messages[0].message.extendedTextMessage) {
+                        reply("❌ Tag someone!");
+                        return;
+                    }
+                    try {
+                        let taggedJid;
+                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
+                        } else {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
+                        }
+                        //when member are mentioned with command
+                        OwnerSend("Target : " + taggedJid);
+                        if (taggedJid == botNumberJid) return reply(`*Baka* How I can _Block_ Myself.😂`);
+                        if (allowedNumbs.includes(taggedJid.split('@')[0])) return reply(`🙄 *Something Not Right* 🙄\n Oh Trying to Block Owner or Moderator 😊 *Baka*`);
+                        if (!(allowedNumbs.includes(senderNumb))) {
+                            reply("❌ Owner command!");
+                            return;
+                        }
+                        console.log('tag: ', taggedJid);
+                        let num_split = taggedJid.split("@s.whatsapp.net")[0];
+                        await setBlockWarning(taggedJid);
+                        let warnMsg = `@${num_split} ,You have been Block To Use the Bot. Ask Owner or Mod to remove it.`;
+                        sock.sendMessage(
+                            from,
+                            {
+                                text: warnMsg,
+                                mentions: [taggedJid]
+                            }
+                        )
+                        reply(`*👍Done Commands Blocked For The Number.*`);
+                    } catch (err) {
+                        OwnerSend(err);
+                        reply(`❌ Error!`);
+                    }
+                    break;
+
+                case 'unblock':
+                    if (!(allowedNumbs.includes(senderNumb))) {
+                        reply("❌ Owner command!");
+                        return;
+                    }
+                    if (!mek.messages[0].message.extendedTextMessage) {
+                        reply("❌ Tag someone!");
+                        return;
+                    }
+                    try {
+                        let taggedJid;
+                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
+                        } else {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
+                        }
+                        //when member are mentioned with command
+                        await removeBlockWarning(taggedJid);
+                        reply(`*👍Done Commands Unblocked For The Number.*`);
+                    } catch (err) {
+                        OwnerSend(err);
+                        reply(`❌ Error!`);
+                    }
+                    break;
+                //------------------------WARNING-----------------------------//
+                case 'getwarn':
+                    if (!mek.messages[0].message.extendedTextMessage) {
+                        reply("❌ Tag someone! or want to know your count reply on your message");
+                        return;
+                    }
+                    try {
+                        let taggedJid;
+                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
+                        } else {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
+                        }
+                        OwnerSend("Target : " + taggedJid);
+                        let warnCount = await getCountWarning(taggedJid, from);
+                        let num_split = taggedJid.split("@s.whatsapp.net")[0];
+                        let warnMsg = `@${num_split}, Your warning status is (${warnCount}/3) in this group.`;
+                        sock.sendMessage(
+                            from,
+                            {
+                                text: warnMsg,
+                                mentions: [taggedJid]
+                            }
+                        )
+                    } catch (error) {
+                        OwnerSend(error);
+                    }
+                    break;
+
+                case 'warn':
+                    if (!mek.messages[0].message.extendedTextMessage) {
+                        reply("❌ Tag someone!");
+                        return;
+                    }
+                    try {
+                        let taggedJid;
+                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
+                        } else {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
+                        }
+                        OwnerSend("Target : " + taggedJid);
+                        if (taggedJid == botNumberJid) return reply(`*Baka* How I can _Warn_ Myself.😂`);
+                        if (allowedNumbs.includes(taggedJid.split('@')[0])) return reply(`🙄 *Something Not Right* 🙄\n Oh Trying to Warn Owner or Moderator 😊 *Baka*`);
+                        if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) {
+                            reply("❌ kya matlab tum admin nhi ho 🙄");
+                            return;
+                        }
+                        let warnCount = await getCountWarning(taggedJid, from);
+                        let num_split = taggedJid.split("@s.whatsapp.net")[0];
+                        let warnMsg = `@${num_split} 😒,You have been warned. Warning status (${warnCount + 1
+                            }/3). Don't repeat this type of behaviour again or you'll be banned 😔 from the group!`;
+                        sock.sendMessage(
+                            from,
+                            {
+                                text: warnMsg,
+                                mentions: [taggedJid]
+                            }
+                        )
+                        await setCountWarning(taggedJid, from);
+                        if (warnCount >= 2) {
+                            if (!isBotGroupAdmins) {
+                                reply("❌ I'm not Admin here!");
+                                return;
+                            }
+                            if (groupAdmins.includes(taggedJid)) {
+                                reply("❌ Cannot remove admin!");
+                                return;
+                            }
+                            sock.groupParticipantsUpdate(
+                                from,
+                                [taggedJid],
+                                "remove"
+                            )
+                            reply("✔ Number removed from group!");
+                        }
+                    } catch (err) {
+                        OwnerSend(`Error`);
+                        console.log(err);
+                        reply(`❌ Error!`);
+                    }
+                    break;
+
+                case 'unwarn':
+                    if (!(allowedNumbs.includes(senderNumb))) {
+                        reply("❌ Owner command!");
+                        return;
+                    }
+                    if (!mek.messages[0].message.extendedTextMessage) {
+                        reply("❌ Tag someone!");
+                        return;
+                    }
+                    try {
+                        let taggedJid;
+                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
+                        } else {
+                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
+                        }
+                        if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) {
+                            reply("❌ kya matlab tum admin nhi ho 🙄");
+                            return;
+                        }
+                        await removeWarnCount(taggedJid, from);
+                        reply(`Set Warn Count to 0 for this user.`);
+                    } catch (err) {
+                        OwnerSend(err);
+                        reply(`❌ Error!`);
+                    }
+                    break;
+                //----------------------SPAM-------------------------------//
+                case 'spam':
+                    if (!isGroup) return;
+                    if (args.length < 2) return reply(`give message and repeat fields.`);
+                    OwnerSend('Args : ' + args);
+                    if (Number(args[0]) > 100) return reply(`Too much value`);
+                    if (!allowedNumbs.includes(senderNumb)) return reply(`Kya matlab u no Mod.`);
+                    let mess = '';
+                    for (let i = 1; i <= args.length - 1; i++) {
+                        mess += args[i];
+                    }
+                    for (let i = 1; i <= args[0]; i++) {
+                        SendMessageNoReply(mess);
                     }
                     break;
                 //-------------------------------REMOVE-BOT-------------------------//
