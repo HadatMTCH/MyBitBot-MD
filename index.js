@@ -52,9 +52,10 @@ let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
 const logger = MAIN_LOGGER.child({});
 logger.level = 'warn';
 
+
 const { state, saveState } = useSingleFileAuthState("./auth_info_multi.json");
 // start a connection
-console.log('state : ', state.creds);
+// console.log('state : ', state.creds);
 const db = require('./database');
 let cred, auth_row_count;
 async function fetchauth() {
@@ -602,12 +603,13 @@ const startSock = async () => {
                     break;
                 //--------------------COUNT--------------------------//
                 case 'count':
-                    
+
                     break
                 //----------------------JOKE----------------------------//
                 case 'joke':
                     if (!isGroup) return;
-                    await jokeFun(args[0].slice(0, 1).toUpperCase() + args[0].slice(1));
+                    if (!args[0]) args[0] = "any";
+                    jokeFun(args[0].slice(0, 1).toUpperCase() + args[0].slice(1));
                     break;
                 //-------------------------------ADVICE----------------------//
                 case 'advice':
