@@ -1,0 +1,42 @@
+{
+  noiseKey: {
+    private: <Buffer 88 6b 5b 1e f0 5e 19 59 b7 f5 85 9b 6d 57 cd a7 c0 16 6a 5d 46 4b d0 c4 95 53 68 fe 64 8b d6 5f>,
+    public: <Buffer e1 d6 8c f1 21 f1 92 26 90 69 a1 db 8e 1b 6d bc d3 dd f1 c7 ac 26 f1 e0 c1 f8 b3 65 5d b7 e2 57>
+  },
+  signedIdentityKey: {
+    private: <Buffer 70 c9 6a f2 5c 63 30 88 39 dc 6d 62 fa c8 13 a6 4b 69 91 b1 44 d3 18 59 4d e9 3d de f8 42 17 60>,
+    public: <Buffer 5e 98 76 bf 84 d2 7d fe 9f d0 93 28 8b 9a d5 02 ef c4 5a cc ac 9a f4 43 1e 57 80 c8 a4 2f 63 39>
+  },
+  signedPreKey: {
+    keyPair: {
+      private: <Buffer e0 77 6e 2d f0 8e 7b 75 f4 b7 99 9a 09 93 32 ef 98 c2 bb 49 bc e8 9c 3b 1e 4c 20 b9 b5 9e d4 72>,
+      public: <Buffer 51 b9 83 61 a4 21 e5 3a 3b 62 bb 56 0d 2f b2 b7 9f 68 3b bc c5 c0 3b 01 39 d0 88 7d f2 dd a0 7c>
+    },
+    signature: <Buffer cd 4c 82 ef 62 bd 9a 75 3a db 97 01 0b 56 3e a8 de c1 da a3 2a 72 b1 ce 8a 76 5b 27 cf f5 ed 9b e0 a0 51 27 05 02 90 1e 8e 19 a9 38 db 49 ff 7e 76 14 ... 14 more bytes>,
+    keyId: 1
+  },
+  registrationId: 81,
+  advSecretKey: 'B3gzaciXjdylXR8k1NN63kcIbDnI2PTlgC0+9Nsp5Fk=',
+  nextPreKeyId: 1143,
+  firstUnuploadedPreKeyId: 1143,
+  serverHasPreKeys: true,
+  account: {
+    details: 'CNSn4IcCEN6WzZMGGAI=',
+    accountSignatureKey: '3NzdNo69ZDGKNzQRxnX0ija+jneK2AVlc+p3URATR3Y=',
+    accountSignature: 'cn8a69WWlvgcA8RZOLa0/t5gZPntbRaj0kLOZteY0R+90ND7l2Q9HOiomSexoMZzbBWC8iKyfybXkd3DvkUJAg==',
+    deviceSignature: 'NlAYJuiOdZgwu+xBRVRezPx5p66341mi/pYnuYF74P0uG5nM8Fmf3no4syfs0qKbfz1mfOkYOEghfJExbFc1gw=='
+  },
+  me: {
+    id: '915862796243:13@s.whatsapp.net',
+    verifiedName: 'Bot MD',
+    name: 'Bot MD'
+  },
+  signalIdentities: [
+    {
+      identifier: [Object],
+      identifierKey: <Buffer 05 dc dc dd 36 8e bd 64 31 8a 37 34 11 c6 75 f4 8a 36 be 8e 77 8a d8 05 65 73 ea 77 51 10 13 47 76>
+    }
+  ],
+  lastAccountSyncTimestamp: 1652588648,
+  myAppStateKeyId: 'AAAAAFR9'
+}

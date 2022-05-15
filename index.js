@@ -600,10 +600,6 @@ const startSock = async () => {
                     if (!isGroup) return;
                     reply(mek.messages[0].pushName)
                     break;
-                //--------------------COUNT--------------------------//
-                case 'count':
-                    
-                    break
                 //----------------------JOKE----------------------------//
                 case 'joke':
                     if (!isGroup) return;
