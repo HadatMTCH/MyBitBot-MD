@@ -39,7 +39,9 @@ ${readMore}
 
 ♥ мα∂є ωιтн ℓσνє, υѕє ωιтн ℓσνє ♥️`
 }
-
+module.exports.OwnerList = (prefix, groupName) => {
+    return `U know`
+}
 module.exports.helpDM = (prefix) => {
     return `
     ─「 *Dm Commands* 」─

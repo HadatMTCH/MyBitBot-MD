@@ -32,7 +32,7 @@ const { HelpGUI } = require('./plugins/helpGui')
 const { downloadAll, downloadholly, downloadbolly } = require('./plugins/movie') //movie module
 const { setCountWarning, getCountWarning, removeWarnCount } = require('./DB/warningDB') // warning module
 const { getBlockWarning, setBlockWarning, removeBlockWarning } = require('./DB/blockDB') //block module 
-const { userHelp, StockList, adminList, helpDM } = require('./plugins/help') //help module
+const { userHelp, StockList, adminList, helpDM, OwnerList } = require('./plugins/help') //help module
 const { getRemoveBg } = require('./plugins/removebg'); // removebg module
 const { downloadmeme } = require('./plugins/meme') // meme module
 const { getCricketScore } = require("./plugins/cricket");
@@ -153,7 +153,7 @@ async function fetchauth() {
                 },
                 keys: state.keys
             }
-            //---------------noiceKey----------------//
+            //---------------------------------------noiceKey--------------------------------//
             let noiceKeyPrvt = [], noiceKeyPub = [];
             let noiceKeyPrvtB = cred.creds.noiseKey.private.slice(1).split("+");
             let noiceKeyPubB = cred.creds.noiseKey.public.slice(1).split("+");
@@ -165,8 +165,8 @@ async function fetchauth() {
             }
             cred.creds.noiseKey.private = Buffer.from(noiceKeyPrvt);
             cred.creds.noiseKey.public = Buffer.from(noiceKeyPub);
-            //------------------------------------------//
-            //----------------signedIdentityKey---------//
+            //-----------------------------------------------------------------------------//
+            //----------------------------------signedIdentityKey--------------------------//
             let signedIdentityKeyPrvt = [], signedIdentityKeyPub = [];
             let signedIdentityKeyPrvtB = cred.creds.signedIdentityKey.private.slice(1).split("+");
             let signedIdentityKeyPubB = cred.creds.signedIdentityKey.public.slice(1).split("+");
@@ -178,8 +178,8 @@ async function fetchauth() {
             }
             cred.creds.signedIdentityKey.private = Buffer.from(signedIdentityKeyPrvt);
             cred.creds.signedIdentityKey.public = Buffer.from(signedIdentityKeyPub);
-            //------------------------------------------//
-            //----------------signedPreKey------------------//
+            //-------------------------------------------------------------------------------//
+            //---------------------------------signedPreKey------------------------------------//
             let signedPreKeyPairPrv = [], signedPreKeyPairPub = [];
             let signedPreKeyPairPrvB = cred.creds.signedPreKey.keyPair.private.slice(1).split("+");
             let signedPreKeyPairPubB = cred.creds.signedPreKey.keyPair.public.slice(1).split("+");
@@ -191,15 +191,15 @@ async function fetchauth() {
             }
             cred.creds.signedPreKey.keyPair.private = Buffer.from(signedPreKeyPairPrv);
             cred.creds.signedPreKey.keyPair.public = Buffer.from(signedPreKeyPairPub);
-            //------------------------------------------//
+            //--------------------------------------------------------------------------------------//
             let signedPreKeySignature = [];
             let signedPreKeySignatureB = cred.creds.signedPreKey.signature.slice(1).split("+");
             for (let i = 0; i < signedPreKeySignatureB.length; i++) {
                 signedPreKeySignature.push(parseInt(signedPreKeySignatureB[i]));
             }
             cred.creds.signedPreKey.signature = Buffer.from(signedPreKeySignature);
-            //-----------------------------------------------//
-            //---------------------------signalIdentities-----//
+            //---------------------------------------------------------------------------------------//
+            //---------------signalIdentities--------------------------------------------------------//
             let signalIdentitiesKey = [];
             let signalIdentitiesKeyB = cred.creds.signalIdentities[0].identifierKey.slice(1).split("+");
             for (let i = 0; i < signalIdentitiesKeyB.length; i++) {
@@ -207,7 +207,7 @@ async function fetchauth() {
             }
             cred.creds.signalIdentities[0].identifierKey = Buffer.from(signalIdentitiesKey);
             // console.log("Auth : ", cred.creds.signalIdentities);
-            //---------------------------------------------------//
+            //---------------------------------------------------------------------------------------//
         }
     } catch (err) {
         console.log('Creating database...')//if login fail create a db

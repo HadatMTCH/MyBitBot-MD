@@ -183,6 +183,9 @@ ${readMore}
     with advice`
 }
 
+module.exports.OwnerList = (prefix, groupName) => {
+    return `U know`
+}
 module.exports.adminList = (prefix, groupName) => {
     return `
     ─「 *${groupName} Admin Commands* 」─
