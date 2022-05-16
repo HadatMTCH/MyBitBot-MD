@@ -227,7 +227,7 @@ const findSong = async (sname) => {
 
 
 // BASIC SETTINGS
-prefix = '.';
+prefix = '-';
 const OwnerNumb = process.env.myNumber + '@s.whatsapp.net';
 source_link = '```https://github.com/jacktheboss220/myBitBot-MD```';
 
