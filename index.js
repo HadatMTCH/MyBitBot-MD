@@ -189,6 +189,7 @@ const startSock = async () => {
     const sock = makeWASocket({
         version,
         logger: noLogs,
+        defaultQueryTimeoutMs: undefined,
         printQRInTerminal: true,
         auth: cred,
     });
@@ -535,7 +536,7 @@ const startSock = async () => {
         ///////////////////////////////////////////
         if (isCmd) {
             // Display every command info
-            console.log("[COMMAND]", command, "[FROM]", senderNumb, "[name]" + mek.messages[0].pushName + "[IN]", groupName);
+            console.log("[COMMAND]", command, "[FROM]", senderNumb, "[name] " + mek.messages[0].pushName + "[IN]", groupName);
             // Send every command info to Owner
             OwnerSend("[COMMAND] " + command + " [FROM] " + senderNumb + " [name] " + mek.messages[0].pushName + " [IN] " + groupName);
             switch (command) {
