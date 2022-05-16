@@ -16,6 +16,14 @@ const createCountMemberTable = async () => {
         "CREATE TABLE IF NOT EXISTS countmember(memberjid text , groupjid text, count integer, PRIMARY KEY (memberjid, groupjid));"
     );
 };
+
+//create countmembername table if not there
+const createCountMemberNameTable = async () => {
+    await pool.query(
+        "CREATE TABLE IF NOT EXISTS countmembername(memberjid text PRIMARY KEY, name text);"
+    );
+};
+
 module.exports.getCountGroupMembers = async (groupJid) => {
     await createCountMemberTable();
     let result = await pool.query(
@@ -55,6 +63,19 @@ module.exports.getCountIndividualAllGroup = async (memberJid) => {
     }
 };
 
+module.exports.getCountIndividualAllGroupWithName = async (memberJid) => {
+    await createCountMemberTable();
+    let result = await pool.query(
+        "SELECT countmember.memberjid,groupname.gname,countmember.count FROM countmember,groupname WHERE countmember.groupjid=groupname.groupjid and memberjid=$1 ORDER BY count DESC;",
+        [memberJid]
+    );
+    if (result.rowCount) {
+        return result.rows;
+    } else {
+        return [];
+    }
+};
+
 module.exports.getCountTop = async () => {
     await createCountMemberTable();
     let result = await pool.query(
@@ -79,7 +100,7 @@ module.exports.getCountGroups = async () => {
     }
 };
 
-module.exports.setCountMember = async (memberJid, groupJid) => {
+module.exports.setCountMember = async (memberJid, groupJid, name) => {
     if (!groupJid.endsWith("@g.us")) return;
 
     //check if groupjid is present in DB or not
@@ -110,6 +131,34 @@ module.exports.setCountMember = async (memberJid, groupJid) => {
             memberJid,
             groupJid,
             1,
+        ]);
+    }
+    await pool.query("commit;");
+
+    let resultName;
+    try {
+        resultName = await pool.query(
+            "select * from countmembername WHERE memberjid=$1;",
+            [memberJid]
+        );
+    } catch (err) {
+        await createCountMemberNameTable();
+        resultName = await pool.query(
+            "select * from countmembername WHERE memberjid=$1;",
+            [memberJid]
+        );
+    }
+
+    //present
+    if (resultName.rows.length) {
+        await pool.query(
+            "UPDATE countmembername SET name = $1 WHERE memberjid=$2;",
+            [name, groupJid]
+        );
+    } else {
+        await pool.query("INSERT INTO countmembername VALUES($1,$2);", [
+            memberJid,
+            name,
         ]);
     }
     await pool.query("commit;");
