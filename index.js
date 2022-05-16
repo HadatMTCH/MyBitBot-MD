@@ -227,7 +227,7 @@ const findSong = async (sname) => {
 
 
 // BASIC SETTINGS
-prefix = '.';
+prefix = '-';
 const OwnerNumb = process.env.myNumber + '@s.whatsapp.net';
 source_link = '```https://github.com/jacktheboss220/myBitBot-MD```';
 
@@ -423,7 +423,7 @@ const startSock = async () => {
         }
         console.log("connection update", update);
     });
-
+    sock.ev.on('creds.update', saveState);
 
     // const sendMessageWTyping = async (msg: AnyMessageContent, jid: string) => {
     //     await sock.presenceSubscribe(jid)
@@ -670,7 +670,7 @@ const startSock = async () => {
                         { buttonId: 'id1', buttonText: { displayText: '.help' }, type: 1 }
                     ]
                     const buttonMessage = {
-                        text: "```⌊ *Hǝllo*" + mek.messages[0].pushName + " ⌋```",
+                        text: "```⌊ *Hǝllo* " + mek.messages[0].pushName + " ⌋```",
                         footer: "```🫠🅈🄴🅂 🄸'🄼 🄰🄻🄸🅅🄴🫠```",
                         buttons: buttons,
                         headerType: 1
