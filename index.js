@@ -1,51 +1,32 @@
-// WEB SERVER
-require("dotenv").config();
-const express = require('express')
-const server = express()
-const axios = require('axios');
-const https = require("https");
-const ud = require('urban-dictionary')
-const inshorts = require('inshorts-api');
-const fs = require('fs');
-const { writeFile } = require('fs/promises')
-const P = require("pino");
+/**
+ * WhatsApp Bot written in Baileys-md version
+ * @author jacktheboss220
+ * @version 1.0.1
+ * 
+ */
+
+require('dotenv').config()
+//-----------------CONST-MODULE_VARIABLE----------------------------//
+const axios = require('axios')
+const fs = require('fs')
+const deepai = require('deepai')
 const videofy = require("videofy")
-const deepai = require('deepai');
-const ytdl = require('ytdl-core');
 const memeMaker = require('@erickwendel/meme-maker')
 const ffmpeg = require('fluent-ffmpeg')//sticker module
+const { writeFile } = require('fs/promises')
 const { Sticker, StickerTypes } = require('wa-sticker-formatter')
-const deepAI = process.env.DEEPAI_KEY;
-const port = process.env.PORT || 8000;
-server.get('/', (req, res) => { res.send('V-Bot server running...') })
-server.listen(port, () => {
-    // console.clear()
-    console.log('\nWeb-server running!\n')
-})
-
-//loading plugins
-const INSTA_API_KEY = process.env.INSTA_API_KEY;
-const { getGender } = require('./plugins/gender') //gender module
-const { getAnimeRandom } = require('./plugins/anime') //anime module
-const { getFact } = require('./plugins/fact') //fact module
 const { HelpGUI } = require('./plugins/helpGui')
-const { downloadAll, downloadholly, downloadbolly } = require('./plugins/movie') //movie module
-const { setCountWarning, getCountWarning, removeWarnCount } = require('./DB/warningDB') // warning module
-const { getBlockWarning, setBlockWarning, removeBlockWarning } = require('./DB/blockDB') //block module 
-const { userHelp, StockList, adminList, helpDM, OwnerList } = require('./plugins/help') //help module
-const { getRemoveBg } = require('./plugins/removebg'); // removebg module
-const { downloadmeme } = require('./plugins/meme') // meme module
-const { getCricketScore } = require("./plugins/cricket");
-const { getScoreCard } = require("./plugins/cricketScoreCard");
-const { igApi, getSessionId } = require('insta-fetcher');
-let ig = new igApi(INSTA_API_KEY);
-ig.setCookie(INSTA_API_KEY);
-const { EmojiAPI } = require('emoji-api');
-const emoji = new EmojiAPI();
-
-const more = String.fromCharCode(8206);
-const readMore = more.repeat(4001);
-//------------------Baileys Const-------------------//
+const ytdl = require('ytdl-core');
+const {
+    VKontakte,
+    Instagram,
+    Facebook,
+    Snapchat,
+    Twitter,
+    YouTube,
+    TikTok
+} = require('social-downloader-sdk');
+//----------------------------------Baileys-----------------------//
 const {
     default: makeWASocket,
     DisconnectReason,
@@ -59,40 +40,46 @@ const {
     MessageOptions,
     Mimetype
 } = require("@adiwajshing/baileys");
-//------------------------------CONSTS----------------------//
-const {
-    VKontakte,
-    Instagram,
-    Facebook,
-    Snapchat,
-    Twitter,
-    YouTube,
-    TikTok
-} = require('social-downloader-sdk');
+//-----------------------------------------------------------------//
+//-----------------------------------CONST--------------------------//
+const OwnerNumb = process.env.OWNER_NUMB + '@s.whatsapp.net';
+const prefix = '.';
+const allowedNumbs = ["918318585418"];
+const INSTA_API_KEY = process.env.INSTA_API_KEY;
+const P = require("pino");
+const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` }
+const { igApi, getSessionId } = require('insta-fetcher');
+let ig = new igApi(INSTA_API_KEY);
+ig.setCookie(INSTA_API_KEY);
+const deepAI = process.env.DEEPAI_KEY;
+//---------------------------------------------------------------------------------------//
+// --------------------------------- SERVER --------------------------------- //
+const express = require("express");
+const app = express();
+app.use(express.urlencoded({ extended: true }));
+const port = process.env.PORT || 8000;
+app.get("/", (req, res) => {
+    res.send("Bot is running.. :)");
+});
+app.listen(port, () => {
+    // console.clear();
+    console.log("\nWeb-server running!\n");
+});
+//----------------------------------------------------------------------------//
 
-const {
-    setCountMember,
-    getCountGroups,
-    getCountGroupMembers,
-    getCountIndividual,
-    getCountIndividualAllGroup,
-    getCountIndividualAllGroupWithName,
-    getCountTop,
-} = require("./DB/countMessDB");
-
-const {
-    getCountDM,
-    setCountDM,
-    removeCountDM,
-    setCountDMOwner
-} = require('./DB/countDMDB');
-
-let MAIN_LOGGER = P({ timestamp: () => `,"time ":"${new Date().toJSON()}"` });
+let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
 const logger = MAIN_LOGGER.child({});
 logger.level = 'warn';
 
+//--------------------------------------AUTH-FILE--------------------------------//
 const { state, saveState } = useSingleFileAuthState("./auth_info_multi.json");
+// start a connection
+// console.log('state : ', state.creds);
+//------------------------------------------------------------------------------//
+//--------------------------------------DATABASE--------------------------------//
 const db = require('./database');
+//------------------------------------------------------------------------------//
+//--------------------------------AUTH-FETCH------------------------------------//
 let cred, auth_row_count;
 async function fetchauth() {
     try {
@@ -148,12 +135,13 @@ async function fetchauth() {
                             identifierKey: data.signalidentitieskey
                         }
                     ],
+                    lastAccountSyncTimestamp: 0, // To allow bot to read the messages
                     // lastAccountSyncTimestamp: Number(data.lastaccountsynctimestampb),
                     myAppStateKeyId: data.myappstatekeyidb
                 },
                 keys: state.keys
             }
-            //---------------------------------------noiceKey--------------------------------//
+            //---------------noiceKey----------------//
             let noiceKeyPrvt = [], noiceKeyPub = [];
             let noiceKeyPrvtB = cred.creds.noiseKey.private.slice(1).split("+");
             let noiceKeyPubB = cred.creds.noiseKey.public.slice(1).split("+");
@@ -165,8 +153,8 @@ async function fetchauth() {
             }
             cred.creds.noiseKey.private = Buffer.from(noiceKeyPrvt);
             cred.creds.noiseKey.public = Buffer.from(noiceKeyPub);
-            //-----------------------------------------------------------------------------//
-            //----------------------------------signedIdentityKey--------------------------//
+            //------------------------------------------//
+            //----------------signedIdentityKey---------//
             let signedIdentityKeyPrvt = [], signedIdentityKeyPub = [];
             let signedIdentityKeyPrvtB = cred.creds.signedIdentityKey.private.slice(1).split("+");
             let signedIdentityKeyPubB = cred.creds.signedIdentityKey.public.slice(1).split("+");
@@ -178,8 +166,8 @@ async function fetchauth() {
             }
             cred.creds.signedIdentityKey.private = Buffer.from(signedIdentityKeyPrvt);
             cred.creds.signedIdentityKey.public = Buffer.from(signedIdentityKeyPub);
-            //-------------------------------------------------------------------------------//
-            //---------------------------------signedPreKey------------------------------------//
+            //------------------------------------------//
+            //----------------signedPreKey------------------//
             let signedPreKeyPairPrv = [], signedPreKeyPairPub = [];
             let signedPreKeyPairPrvB = cred.creds.signedPreKey.keyPair.private.slice(1).split("+");
             let signedPreKeyPairPubB = cred.creds.signedPreKey.keyPair.public.slice(1).split("+");
@@ -191,15 +179,15 @@ async function fetchauth() {
             }
             cred.creds.signedPreKey.keyPair.private = Buffer.from(signedPreKeyPairPrv);
             cred.creds.signedPreKey.keyPair.public = Buffer.from(signedPreKeyPairPub);
-            //--------------------------------------------------------------------------------------//
+            //------------------------------------------//
             let signedPreKeySignature = [];
             let signedPreKeySignatureB = cred.creds.signedPreKey.signature.slice(1).split("+");
             for (let i = 0; i < signedPreKeySignatureB.length; i++) {
                 signedPreKeySignature.push(parseInt(signedPreKeySignatureB[i]));
             }
             cred.creds.signedPreKey.signature = Buffer.from(signedPreKeySignature);
-            //---------------------------------------------------------------------------------------//
-            //---------------signalIdentities--------------------------------------------------------//
+            //-----------------------------------------------//
+            //---------------------------signalIdentities-----//
             let signalIdentitiesKey = [];
             let signalIdentitiesKeyB = cred.creds.signalIdentities[0].identifierKey.slice(1).split("+");
             for (let i = 0; i < signalIdentitiesKeyB.length; i++) {
@@ -207,7 +195,7 @@ async function fetchauth() {
             }
             cred.creds.signalIdentities[0].identifierKey = Buffer.from(signalIdentitiesKey);
             // console.log("Auth : ", cred.creds.signalIdentities);
-            //---------------------------------------------------------------------------------------//
+            //---------------------------------------------------//
         }
     } catch (err) {
         console.log('Creating database...')//if login fail create a db
@@ -216,7 +204,8 @@ async function fetchauth() {
     }
 }
 
-/*****************|SONG|*****************/
+//-------------------------------FUNTIONS---------------------------------------------------//
+//---------------------SONG---------------//
 const findSong = async (sname) => {
     const yts = require('yt-search')
     const r = await yts(`${sname}`)
@@ -224,103 +213,27 @@ const findSong = async (sname) => {
     let st = videos[0].url;
     return st;
 }
-
-
-// BASIC SETTINGS
-prefix = '.';
-const OwnerNumb = process.env.myNumber + '@s.whatsapp.net';
-source_link = '```https://github.com/jacktheboss220/myBitBot-MD```';
-
-let allowedNumbs = ["917070224546", "918318585418", "916353553554"];//enter your own no. for having all the super user previlage
-const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` }
-
-// TECH NEWS ---------------------------
-
-const url = "https://news-pvx.herokuapp.com/";
-let latestNews = "TECH NEWS--------";
-
-const getNews = async () => {
-    const { data } = await axios.get(url);
-    console.log(typeof data);
-    let count = 0;
-
-    let news = `☆☆☆☆☆💥 Tech News 💥☆☆☆☆☆ \n\n ${readMore}`;
-    data["inshorts"].forEach((headline) => {
-        count += 1
-        if (count > 13) return;
-        news = news + "🌐 " + headline + "\n\n";
-    });
-    return news;
-};
-
-const postNews = async (categry) => {
-    console.log(categry)
-    let n = '';
-    let z = categry;
-    let arr = ['national', 'business', 'sports', 'world', 'politics', 'technology', 'startup', 'entertainment', 'miscellaneous', 'hatke', 'science', 'automobile'];
-    if (!arr.includes(z)) {
-        return "Enter a valid category:) or use -category for more info:)";
-    }
-    var options = {
-        lang: 'en',
-        category: z,
-        numOfResults: 13
-    }
-    n = `☆☆☆☆☆💥 ${z.toUpperCase()} News 💥☆☆☆☆☆ \n\n ${readMore}`
-    await inshorts.get(options, function (result) {
-        for (let i = 0; i < result.length; i++) {
-            temp = "🌐 " + result[i].title + "\n";
-            n = n + temp + "\n";
-        }
-    }).catch((er) => "");
-
-    return n;
-}
-//Hroroscope function
-async function gethoro(sunsign) {
-    var mainconfig = {
-        method: 'POST',
-        url: `https://aztro.sameerkumar.website/?sign=${sunsign}&day=today`
-    }
-    let horo
-    await axios.request(mainconfig).then((res) => {
-        horo = res.data
-    }).catch((error) => {
-        return false;
-    })
-    return horo;
-}
-
-//classic Dictionary
-async function dictionary(word) {
-    var config = {
-        method: 'GET',
-        url: `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
-    }
-    let classic;
-    await axios.request(config).then((res) => {
-        classic = res.data[0];
-    }).catch((error) => {
-        return;
-    })
-    return classic;
-}
-
-// MAIN FUNTION
+//-------------------------------------------------------------------------------------------//
+//---------------------------------------------------------------------------------------------------------------//
+//---------------------------MAIN-FUNTION-----------------------------------------//
 const startSock = async () => {
     // fetch latest version of WA Web
-    const { version, isLatest } = await fetchLatestBaileysVersion()
-    console.log(`using WA v${version.join('.')}, isLatest: ${isLatest}`)
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    console.log(`using WA v${version.join(".")}, isLatest: ${isLatest}`);
     let noLogs = P({ level: "silent" }); //to hide the chat logs
     await fetchauth();
+    if (auth_row_count == 0);
+    else {
+        state.creds = cred.creds;
+    }
     const sock = makeWASocket({
         version,
         logger: noLogs,
         defaultQueryTimeoutMs: undefined,
         printQRInTerminal: true,
-        auth: cred,
+        auth: state,
     });
-    //-------------------------------BOT-NUMBER------------------------------//
+    //------------------------connection.update------------------------------//
     sock.ev.on("connection.update", (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'open') {
@@ -423,47 +336,88 @@ const startSock = async () => {
         }
         console.log("connection update", update);
     });
-    sock.ev.on('creds.update', saveState);
+    // listen for when the auth credentials is updated
+    // sock.ev.on("creds.update", saveState)
+    // return sock;
+    // store.bind(sock.ev);
+    const sendMessageWTyping = async (msg, jid) => {
+        await sock.presenceSubscribe(jid);
+        await delay(500);
+        await sock.sendPresenceUpdate("composing", jid);
+        await delay(2000);
+        await sock.sendPresenceUpdate("paused", jid);
+        await sock.sendMessage(jid,
+            { text: msg });
+    };
 
-    // const sendMessageWTyping = async (msg: AnyMessageContent, jid: string) => {
-    //     await sock.presenceSubscribe(jid)
-    //     await delay(500)
-    //     await sock.sendPresenceUpdate('composing', jid)
-    //     await delay(2000)
-    //     await sock.sendPresenceUpdate('paused', jid)
-    //     await sock.sendMessage(jid, msg)
-    // }
+    //-------------------------OWNER-SEND------------------------------------//
     const OwnerSend = (teks) => {
         sock.sendMessage(
             OwnerNumb,
             { text: teks }
         )
     }
+    //-----------------------------------------------------------------------//
 
-    //------------------------------------//
+    //---------------------------------------group-participants.update-----------------------------------------//
     sock.ev.on('group-participants.update', (anu) => {
         try {
-            sock.groupMetadata(anu.id).then((res) => {
-                if (anu.participants[0] != '0') {
-                    console.log(anu);
-                    OwnerSend(`*Action:* ${anu.action} \n*Group:* ${anu.id} \n*Grp Name:* ${res.subject} \n*Participants:* ${anu.participants[0]}`);
-                }
+            sock.groupMetadata(anu.jid).then((res) => {
+                OwnerSend(`*Action:* ${anu.action} \n*Group:* ${anu.id} \n*Grp Name:* ${res.subject} \n*Participants:* ${anu.participants[0]}`);
             })
+            console.log(anu);
         } catch (e) {
             console.log(e)
         }
-    })
+    });
+    //--------------------------------------------------------------------------------------------------------------//
 
-    sock.ev.on('messages.upsert', async (mek) => {
+    //-------------------------------CONST-VARIABLE-------------------------------//
+    const { downloadmeme } = require('./plugins/meme');
+    const { userHelp, adminList, OwnerList } = require('./plugins/help');
+    const { EmojiAPI } = require('emoji-api');
+    const emoji = new EmojiAPI();
+    //-------------------------------------------------------------------------//
+
+    //------------------------Hroroscope-function------------------------------//
+    async function gethoro(sunsign) {
+        var mainconfig = {
+            method: 'POST',
+            url: `https://aztro.sameerkumar.website/?sign=${sunsign}&day=today`
+        }
+        let horo;
+        await axios.request(mainconfig).then((res) => {
+            horo = res.data
+        }).catch((error) => {
+            return false;
+        })
+        return horo;
+    }
+    //--------------------------classic-Dictionary-----------------------------//
+    async function dictionary(word) {
+        var config = {
+            method: 'GET',
+            url: `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
+        }
+        let classic;
+        await axios.request(config).then((res) => {
+            classic = res.data[0];
+        }).catch((error) => {
+            return;
+        })
+        return classic;
+    }
+    //--------------------------------------------------------------------//
+    //---------------------------------------messages.upsert---------------//
+    sock.ev.on("messages.upsert", async (mek) => {
         const msg = JSON.parse(JSON.stringify(mek)).messages[0];
         // if (mek.type !== 'notify') return;
         // console.log('msg ', msg.message);
         if (!msg.message) return;
         if (msg.key.fromMe) return;
-        // console.log('Mek: ', mek.messages[0]);
+        // console.log('Mek: ',mek.messages);
         const content = JSON.stringify(msg.message);
         const from = msg.key.remoteJid;
-        // console.log("From : ", from);
         const type = Object.keys(msg.message)[0];
         // console.log("Type: ", type);
         //----------------------------GET ADMINS-------------------------------//
@@ -474,6 +428,15 @@ const startSock = async () => {
             }
             return admins;
         };
+        const getSupperAdmin = (participants) => {
+            admins = [];
+            for (let i of participants) {
+                if (i.admin == 'superadmin') {
+                    admins.push(i.id);
+                    return admins;
+                }
+            }
+        }
         //-------------------------------BOT-NUMBER------------------------------//
         let botNumberJid = sock.user.id;
         botNumberJid =
@@ -482,18 +445,14 @@ const startSock = async () => {
 
 
         //----------------------------BODY take message part---------------------------------------//
-        let body = type === "conversation" &&
-            msg.message.conversation.startsWith(prefix)
-            ? msg.message.conversation
-            : type == "imageMessage" &&
+        let body = type === "conversation" && msg.message.conversation.startsWith(prefix)
+            ? msg.message.conversation : type == "imageMessage" &&
                 msg.message.imageMessage.caption &&
                 msg.message.imageMessage.caption.startsWith(prefix)
-                ? msg.message.imageMessage.caption
-                : type == "videoMessage" &&
+                ? msg.message.imageMessage.caption : type == "videoMessage" &&
                     msg.message.videoMessage.caption &&
                     msg.message.videoMessage.caption.startsWith(prefix)
-                    ? msg.message.videoMessage.caption
-                    : type == "extendedTextMessage" &&
+                    ? msg.message.videoMessage.caption : type == "extendedTextMessage" &&
                         msg.message.extendedTextMessage.text &&
                         msg.message.extendedTextMessage.text.startsWith(prefix)
                         ? msg.message.extendedTextMessage.text
@@ -502,31 +461,28 @@ const startSock = async () => {
                             : type == "templateButtonReplyMessage"
                                 ? msg.message.templateButtonReplyMessage.selectedDisplayText
                                 : type == "listResponseMessage"
-                                    ? msg.message.listResponseMessage.title
-                                    : "";
+                                    ? msg.message.listResponseMessage.title : "";
         //----------------------------------------------------------------------------------------//
         if (body[1] == " ") body = body[0] + body.slice(2);
-        // console.log("body : ", body);
         const evv = body.trim().split(/ +/).slice(1).join(' ');
         const command = body.slice(1).trim().split(/ +/).shift().toLowerCase();
         const args = body.trim().split(/ +/).slice(1);
         const isCmd = body.startsWith(prefix);
         const isGroup = from.endsWith("@g.us");
-        const groupMetadata = isGroup ? await sock.groupMetadata(from) : " ";
-        // console.log("Grp DATA : ", groupMetadata);
-        let sender = isGroup ? mek.messages[0].key.participant : mek.messages[0].key.remoteJid;
+        const groupMetadata = isGroup ? await sock.groupMetadata(from) : "";
+        let sender = isGroup ? msg.key.participant : mek.messages[0].key.remoteJid;
         const senderNumb = sender.includes(":") ? sender.split(":")[0] : sender.split("@")[0];
         if (msg.key.fromMe) sender = botNumberJid;
         const senderjid = sender.includes(":") ? sender.slice(0, sender.search(":")) + '@' + sender.split("@")[1] : sender;
         //-----------------------------------------------------------------------//
-        const groupName = isGroup ? groupMetadata.subject : " ";
-        const groupDesc = isGroup ? (groupMetadata.desc == undefined) ? "" : groupMetadata.desc.toString() : "";
-        const groupMembers = isGroup ? groupMetadata.participants : " ";
-        const groupAdmins = isGroup ? getGroupAdmins(groupMembers) : " ";
+        const groupName = isGroup ? groupMetadata.subject : "";
+        const groupDesc = isGroup ? groupMetadata.desc : "";
+        const groupMembers = isGroup ? groupMetadata.participants : "";
+        const groupAdmins = isGroup ? getGroupAdmins(groupMembers) : "";
         //-----------------------------------------------------------------------//
         const isBotGroupAdmins = groupAdmins.includes(botNumberJid) || false;
         const isGroupAdmins = groupAdmins.includes(senderjid) || false;
-        const SuperAdmin = groupMetadata.owner;
+        const SuperAdmin = getSupperAdmin(groupMembers);
         const isMedia = type === "imageMessage" || type === "videoMessage";
         const isTaggedImage = type === "extendedTextMessage" && content.includes("imageMessage");
         const isTaggedVideo = type === "extendedTextMessage" && content.includes("videoMessage");
@@ -566,18 +522,21 @@ const startSock = async () => {
             if (categories != "Any" && !(cate.includes(take))) return reply(`*Wrong Categories*\n *_Type any one_* :  *${cate
                 }*`);
             const params = "blacklistFlags=religious,racist";
-            axios.get(`${baseURL}/joke/${categories}?${params}`).then((res) => {
-                let randomJoke = res.data;
-                if (randomJoke.type == "single") {
-                    mess = 'Category => ' + randomJoke.category + '\n\n' + randomJoke.joke;
-                    reply(mess);
-                }
-                else {
-                    mess = 'Category => ' + randomJoke.category + '\n\n' + randomJoke.setup + '\n' + randomJoke.delivery;
-                    reply(mess);
-                }
-                console.log("Categories => ", categories);;
-            });
+            axios.get(`${baseURL
+                }/joke/${categories
+                }?${params
+                }`).then((res) => {
+                    let randomJoke = res.data;
+                    if (randomJoke.type == "single") {
+                        mess = 'Category => ' + randomJoke.category + '\n\n' + randomJoke.joke;
+                        reply(mess);
+                    }
+                    else {
+                        mess = 'Category => ' + randomJoke.category + '\n\n' + randomJoke.setup + '\n' + randomJoke.delivery;
+                        reply(mess);
+                    }
+                    console.log("Categories => ", categories);;
+                });
         }
         //-----------------------------------------ADVICE---------------------------------------------------//
         async function getRandomAD() {
@@ -608,59 +567,40 @@ const startSock = async () => {
             });
         }
 
-        //-------------------------COUNT--------------------------------//
-        if (isGroup) {
-            setCountMember(sender, from, mek.messages[0].pushName);
-        }
-        //--------------------------------BLOCK-CMDs--------------------//
-        let blockCommandsInDesc = []; //commands to be blocked
-        if (groupDesc) {
-            let firstLineDesc = groupDesc.split("\n")[0];
-            blockCommandsInDesc = firstLineDesc.split(",");
-        }
         //--------------------------------------------------DM-------------------------------------------------//
-        // if (!isGroup)
-        //     SendMessageNoReply(`ʜᴇʟʟᴏ \nɪ'ᴍ ʙɪᴛʙᴏᴛ ᴀ ᴡʜᴀᴛꜱᴀᴘᴘ ʙᴏᴛ.\nᴛʏᴘᴇ -ʜᴇʟᴘ`);
+        if (!isGroup)
+            reply(`ʜᴇʟʟᴏ ${mek.messages[0].pushName}\nɪ'ᴍ ʙɪᴛʙᴏᴛ ᴀ ᴡʜᴀᴛꜱᴀᴘᴘ ʙᴏᴛ ʙᴜᴛ ɪ ᴅᴏɴ'ᴛ ᴡᴏʀᴋ ɪɴ ᴅɪʀᴇᴄᴛ ᴍᴇꜱꜱᴀɢᴇꜱ (ᴅᴍ). ꜱᴏ, ᴅᴏɴ'ᴛ ꜱᴘᴀᴍ ʜᴇʀᴇ./nᴛʜᴀɴᴋꜱ`);
+        //----------------------------------------------------------------------------------------------------//
         ///////////////////////////////////////////
         //////////////////COMMANDS\\\\\\\\\\\\\\\\\
         ///////////////////////////////////////////
         if (isCmd) {
-            //--------------------------------CMDs BLOCK-------------------------//
-            if (command != '')
-                if (blockCommandsInDesc.includes(command)) {
-                    reply("❌ Command blocked for this group!");
-                    return;
-                }
-            //-----------------------BLOCK-USER-----------------------//
-            let blockCount = await getBlockWarning(sender);
-            if (blockCount == 1) return reply(`You cann't use the bot as u are *blocked*.`);
             // Display every command info
-            console.log("[COMMAND]", command, "[FROM]", senderNumb, "[name] " + mek.messages[0].pushName + "[IN]", groupName);
+            console.log("[COMMAND] ", command, "[FROM] ", senderNumb, "[name] " + mek.messages[0].pushName + "[IN] ", groupName);
             // Send every command info to Owner
             OwnerSend("[COMMAND] " + command + " [FROM] " + senderNumb + " [name] " + mek.messages[0].pushName + " [IN] " + groupName);
             switch (command) {
-                //--------------------------HELP------------------------//
+                //------------------HELP------------------------------------------------------//
                 case 'help':
-                    if (!isGroup) SendMessageNoReply(helpDM(prefix));
-                    else
-                        SendMessageNoReply(userHelp(prefix, groupName));
+                    if (!isGroup) return;
+                    SendMessageNoReply(userHelp(prefix, groupName, mek.messages[0].pushName));
                     break;
-                //--------------------GUI HELP------------------------//
+                //-------------------------HELP-GUI--------------------------------------//
                 case 'bit':
                 case 'list':
                 case 'menu':
-                    HelpGUI(sock, from);
+                    HelpGUI(sock, from, mek.messages[0].pushName);
                     break;
                 //------------------------------ADMIN---------------------------------------//
                 case 'admin':
                     if (!isGroup) return;
-                    if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) return reply('```kya matlab tum admin nhi ho 🙄```');
-                    SendMessageNoReply(adminList(prefix, groupName));
+                    if (!isGroupAdmins && !allowedNumbs.includes(sender)) return reply('```kya matlab tum admin nhi ho 🙄```');
+                    SendMessageNoReply(adminList(prefix, groupName, mek.messages[0].pushName));
                     break;
                 //------------------------------------OWNER-----------------------------------------//
                 case 'owner':
                     if (!OwnerNumb == senderjid) return reply(`Owner Cmd`);
-                    SendMessageNoReply(OwnerList(prefix, groupName));
+                    SendMessageNoReply(OwnerList(prefix, groupName, mek.messages[0].pushName));
                     break;
                 //-------------------------------------ALIVE------------------------------------//
                 case 'a':
@@ -669,8 +609,9 @@ const startSock = async () => {
                     const buttons = [
                         { buttonId: 'id1', buttonText: { displayText: '.help' }, type: 1 }
                     ]
+
                     const buttonMessage = {
-                        text: "```⌊ *Hǝllo* " + mek.messages[0].pushName + " ⌋```",
+                        text: "```⌊ *Hǝllo*!!" + mek.messages[0].pushName + " ⌋```",
                         footer: "```🫠🅈🄴🅂 🄸'🄼 🄰🄻🄸🅅🄴🫠```",
                         buttons: buttons,
                         headerType: 1
@@ -696,104 +637,413 @@ const startSock = async () => {
                         return OwnerSend('Term: ' + err);
                     }
                     break;
-                //-------------------------------COUNT---------------//
-                case "pcount":
-                case "count":
-                    if (!isGroup) {
-                        reply("❌ Group command only!");
-                        return;
-                    }
-                    // if (
-                    //     mek.messages[0].message.extendedTextMessage &&
-                    //     mek.messages[0].message.extendedTextMessage.contextInfo &&
-                    //     mek.messages[0].message.extendedTextMessage.contextInfo.participant
-                    // ) {
-                    //     sender = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
-                    // }
-                    try {
-                        let indiCount = await getCountIndividual(sender, from);
-                        if (!indiCount) indiCount = 0;
-                        sock.sendMessage(
-                            from,
-                            {
-                                text: `${mek.messages[0].pushName} have _${indiCount} messages from 03 April_ in this group!`
-                            }
-                        )
-                    } catch (err) {
-                        console.log(err);
-                    }
-                    break;
-                /* --------------------------------- zero --------------------------------- */
-                // case "trash":
-                //     try {
-                //         if (!isGroup) {
-                //             reply("❌ Group command only!");
-                //             return;
-                //         }
-                //         if (allowedNumbs.includes(senderNumb) || isGroupAdmins) {
-                //             let resultCountGroupIndi = await getCountGroupMembers(from);
-                //             let memWithMsg = new Set();
-                //             for (let member of resultCountGroupIndi) {
-                //                 memWithMsg.add(member.memberjid);
-                //             }
-                //             let zeroMsg = `${groupName}\nMembers with 0 message from 03 March:${readMore}\n`;
-                //             groupMembers.forEach((mem) => {
-                //                 if (!memWithMsg.has(mem.jid)) {
-                //                     zeroMsg += `\n${mem.jid.split("@")[0]}`;
-                //                 }
-                //             });
-                //             reply(zeroMsg);
-                //         } else {
-                //             reply("❌ Admin command!");
-                //         }
-                //     } catch (err) {
-                //         console.log(err);
-                //     }
-                //     break;
-                //--------------------ADVICE------------------------//
-                case 'advice':
-                    if (!isGroup) return;
-                    getRandomAD();
-                    break;
-                //----------------------TTS-------------------------//
-                case 'tts':
-                case 'attp':
-                    if (!isGroup) return;
-                    var take = args[0];
-                    for (i = 1; i < args.length; i++) {
-                        take += " " + args[i];
-                    }
-                    OwnerSend(take + " =tts message");
-                    let uri = encodeURI(take);
-                    async function getTTS() {
-                        await axios.get(
-                            "https://api.xteam.xyz/attp?file&text=" + uri,
-                            { responseType: "arraybuffer" }
-                        ).then((ttinullimage) => {
-                            sock.sendMessage(
-                                from,
-                                {
-                                    sticker: Buffer.from(ttinullimage.data)
-                                }
-                            );
-                        }).catch(() => {
-                            reply(`_Daily Api Limit Exceeds_\n_Wait For SomeTime_`);
-                        });
-                    }
-                    getTTS();
-                    break;
                 //---------------------------MY-NAME--------------------------//
                 case 'my':
                     if (!isGroup) return;
                     reply(mek.messages[0].pushName)
                     break;
-                //------------------------------MEME----------------------------//
+                //--------------------COUNT--------------------------//
+                case 'count':
+
+                    break
+                //----------------------JOKE----------------------------//
+                case 'joke':
+                    if (!isGroup) return;
+                    if (!args[0]) args[0] = "any";
+                    jokeFun(args[0].slice(0, 1).toUpperCase() + args[0].slice(1));
+                    break;
+                //-------------------------------ADVICE----------------------//
+                case 'advice':
+                    if (!isGroup) return;
+                    await getRandomAD();
+                    break;
+                //-------------------HORO-----------------------//
+                case 'horo':
+                    if (!isGroup) return;
+                    if (!args[0]) return reply("Enter horo")
+                    console.log("SENDER NUMB:", senderNumb);
+                    let horoscope = args[0];
+                    let h_Low = horoscope.toLowerCase();
+                    let l = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces']
+                    if (!l.includes(h_Low)) {
+                        reply("Kindly enter the right spelling ")//SAhi se daal bhai,sign 12 he hote hai :)       
+                    } else {
+                        const callhoro = await gethoro(h_Low);
+                        reply(`*Date Range*:-${callhoro.date_range}
+  *Nature Hold's For you*:-${callhoro.description}
+  *Compatibility*:-${callhoro.compatibility}
+  *Mood*:-${callhoro.mood}
+  *color*:-${callhoro.color}
+  *Lucky Number*:-${callhoro.lucky_number}
+  *Lucky time*:-${callhoro.lucky_time}`)
+                    }
+                    break;
+
+                //-------------------------------INSTA------------------------------ //
+                case "insta":
+                case "i":
+                    if (!isGroup) {
+                        reply("❌ Group command only!");
+                        return;
+                    }
+                    if (args.length === 0) {
+                        reply(`❌ URL is empty! \nSend ${prefix}insta url`);
+                        return;
+                    }
+                    let urlInsta = args[0];
+                    if (
+                        !(
+                            urlInsta.includes("instagram.com/p/") ||
+                            urlInsta.includes("instagram.com/reel/") ||
+                            urlInsta.includes("instagram.com/tv/")
+                        )
+                    ) {
+                        reply(
+                            `❌ Wrong URL! Only Instagram posted videos, tv and reels can be downloaded.`
+                        );
+                        return;
+                    }
+                    if (urlInsta.includes("?"))
+                        urlInsta = urlInsta.split("/?")[0];
+                    console.log(urlInsta);
+                    OwnerSend("Downloading URL : " + urlInsta);
+                    reply(`*Downloading...Pls wait*`);
+                    ig.fetchPost(urlInsta).then((res) => {
+                        if (res.media_count == 1) {
+                            if (res.links[0].type == "video") {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        video: { url: res.links[0].url }
+                                    },
+                                    { quoted: mek.messages[0] }
+                                )
+                            } else if (res.links[0].type == "image") {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        image: { url: res.links[0].url }
+                                    },
+                                    { quoted: mek.messages[0] }
+                                )
+                            }
+                        } else if (res.media_count > 1) {
+                            for (let i = 0; i < res.media_count; i++) {
+                                if (res.links[i].type == "video") {
+                                    sock.sendMessage(
+                                        from,
+                                        {
+                                            video: { url: res.links[i].url }
+                                        },
+                                        { quoted: mek.messages[i] }
+                                    )
+                                } else if (res.links[i].type == "image") {
+                                    sock.sendMessage(
+                                        from,
+                                        {
+                                            image: { url: res.links[i].url }
+                                        },
+                                        { quoted: mek.messages[0] }
+                                    )
+                                }
+                            }
+                        }
+                    }).catch((error) => {
+                        console.log(error);
+                        reply('Error');
+                    });
+                    break;
+                //--------------------------NSFW-------------------------------//
+                case 'nsfw':
+                    if (!isGroup) return;
+                    if ((isMedia && !mek.messages[0].message.videoMessage || isTaggedImage)) {
+                        let downloadFilePath;
+                        if (mek.messages[0].message.imageMessage) {
+                            downloadFilePath = mek.messages[0].message.imageMessage;
+                        } else {
+                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
+                        }
+                        const stream = await downloadContentFromMessage(downloadFilePath, 'image');
+                        let buffer = Buffer.from([])
+                        for await (const chunk of stream) {
+                            buffer = Buffer.concat([buffer, chunk])
+                        }
+                        deepai.setApiKey(deepAI);
+                        getcall(buffer)
+                    }
+                    else {
+                        reply(`*Reply to image only*`);
+                        console.log("Error not replyed");
+                    }
+                    break;
+
+
+                //-----------------------------------EMOJI-TO-STICKER------------------------------//
+                case 'pmoji':
+                    if (!isGroup) return;
+                    if (!args[0]) return reply(`❌ Enter emoji after pmoji`);
+                    OwnerSend('Args: ' + evv);
+                    console.log('Args:', args);
+                    emoji.get(args[0]).then((response) => {
+                        let UrlEmoji = '';
+                        if (args.length == 1) {
+                            for (let i of response.images) {
+                                if (i.vendor.toLowerCase() == 'whatsapp')
+                                    UrlEmoji = i.url;
+                            }
+                        } else if (args.length == 2) {
+                            for (let i of response.images) {
+                                if (i.vendor.toLowerCase() == args[1].toLowerCase())
+                                    UrlEmoji = i.url;
+                            }
+                        }
+                        if (UrlEmoji == '') return reply('Emoji not Found for Args');
+                        sock.sendMessage(
+                            from,
+                            {
+                                image: { url: `${UrlEmoji}` },
+                                caption: `Emoji: ${response.emoji}
+ Unicode: ${response.unicode}
+ Name: ${response.name}`
+                            }
+                        )
+                    }).catch((error) => {
+                        reply(`❌ Emoji not found!!`);
+                        console.log(error);
+                    })
+                    break;
+
+                //------------------------GET_DATA-------------------------------//
+                case 'dev':
+                    const templateButtons = [
+                        { index: 1, urlButton: { displayText: '⭐ Project Link!', url: 'https://github.com/jacktheboss220/MyBitBot-MD' } },
+                        { index: 2, urlButton: { displayText: 'Contact Me!', url: 'https://github.com/jacktheboss220/MyBitBot-MD/issues' } },
+                        { index: 3, quickReplyButton: { displayText: '.source', id: 'id1' } }
+                    ]
+                    const templateMessage = {
+                        text: "ɢɪᴠᴇ ᴀ ꜱᴛᴀʀ ɪꜰ ʏᴏᴜ ʟɪᴋᴇ ᴛʜᴇ ʙᴏᴛ\nꜰᴏᴜɴᴅ ᴀ ʙᴜɢ ᴏʀ ᴇʀʀᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴍᴇ ʙᴇʟᴏᴡ",
+                        footer: 'ᴮᴵᵀᴮᴼᵀ',
+                        templateButtons: templateButtons
+                    }
+                    await sock.sendMessage(from, templateMessage)
+                    break;
+                //----------------------------MP3-----------------------//
+                case 'mp3':
+                case 'mp4audio':
+                case 'tomp3':
+                    if (!isGroup) return;
+                    if ((isMedia && !mek.messages[0].message.imageMessage || isTaggedVideo)) {
+                        let downloadFilePath;
+                        if (mek.messages[0].message.videoMessage) {
+                            downloadFilePath = mek.messages[0].message.videoMessage;
+                        } else {
+                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.videoMessage;
+                        }
+                        const stream = await downloadContentFromMessage(downloadFilePath, 'video');
+                        let buffer = Buffer.from([])
+                        for await (const chunk of stream) {
+                            buffer = Buffer.concat([buffer, chunk])
+                        }
+                        const media = getRandom('.mp4')
+                        await writeFile(media, buffer)
+                        const path = getRandom('.mp3')
+                        function convert(input, output, callback) {
+                            ffmpeg(input)
+                                .output(output)
+                                .on('end', function () {
+                                    console.log('conversion ended');
+                                    callback(null);
+                                }).on('error', function (err) {
+                                    console.log('error: ', e.code, e.msg);
+                                    callback(err);
+                                }).run();
+                        }
+                        convert(media, path, function (err) {
+                            if (!err) {
+                                console.log('conversion complete');
+                                (async () => {
+                                    await sock.sendMessage(
+                                        from,
+                                        {
+                                            audio: fs.readFileSync(path),
+                                            mimetype: 'audio/mp4'
+                                        },
+                                        {
+                                            quoted: mek.messages[0]
+                                        }
+                                    )
+                                    fs.unlinkSync(media);
+                                    fs.unlinkSync(path);
+                                })();
+                            }
+                        });
+                    }
+                    else {
+                        console.log("No Media tag");
+                        reply(`*Reply to video only*`)
+                    }
+                    break;
+                //-------------------------YT--------------------------//
+                case 'yt':
+                case 'ytv':
+                    if (!isGroup) return;
+                    if (!args[0]) return reply(`Type url after ${prefix}yt`);
+                    var YTurl = args[0];
+                    console.log(`${YTurl}`);
+                    OwnerSend('Yt : ' + YTurl)
+                    try {
+                        (async () => {
+                            const resV = await YouTube.getVideo(YTurl);
+                            let YTtitle = resV.data.body.meta.title
+                            for (let i = 0; i < resV.data.body.url.length; i++) {
+                                if (
+                                    resV.data.body.url[i].quality == 720
+                                    && resV.data.body.url[i].no_audio == false
+                                ) {
+                                    try {
+                                        sock.sendMessage(
+                                            from,
+                                            {
+                                                video: { url: resV.data.body.url[i].url },
+                                                caption: `*Title*: ${YTtitle}
+     *Quality*: 720p`
+                                            },
+                                            {
+                                                quoted: mek.messages[0]
+                                            }
+                                        )
+                                    } catch {
+                                        reply(`No 720p Found`)
+                                    }
+                                } else if
+                                    (
+                                    resV.data.body.url[i].quality == 360
+                                    && resV.data.body.url[i].no_audio == false
+                                ) {
+                                    try {
+                                        sock.sendMessage(
+                                            from,
+                                            {
+                                                video: { url: resV.data.body.url[i].url },
+                                                caption: `*Title*: ${YTtitle}
+     *Quality*: 360p`
+                                            },
+                                            {
+                                                quoted: mek.messages[0]
+                                            }
+                                        )
+                                    } catch {
+                                        reply('No 360p Found')
+                                    }
+                                }
+                            }
+                        })();
+                    } catch (error) {
+                        console.log(error);
+                        reply(`Unable to download,contact dev.`);
+                    }
+                    break;
+                //------------------------------YTA-------------------------//
+                case 'yta':
+                    if (!isGroup) return;
+                    if (!args[0]) return reply(`_Enter URl after yta_`);
+                    var url1 = args[0];
+                    console.log(`${url1}`)
+                    const am = async (url1) => {
+                        let info = ytdl.getInfo(url1)
+                        let sany = getRandom('.mp3')
+                        const stream = ytdl(url1, { filter: info => info.audioBitrate == 160 || info.audioBitrate == 128 }).pipe(fs.createWriteStream(sany));
+                        console.log("audio downloaded")
+                        reply('*Downloading Audio.....*\nThis may take upto 1 or 2 min.');
+                        await new Promise((resolve, reject) => {
+                            stream.on('error', reject)
+                            stream.on('finish', resolve)
+                        }).then(async (res) => {
+                            await sock.sendMessage(
+                                from,
+                                {
+                                    audio: fs.readFileSync(sany)
+                                },
+                                {
+                                    quoted: mek.messages[0]
+                                }
+                            ).then((resolved) => {
+                                console.log("Sent ")
+                                fs.unlinkSync(sany)
+                            }).catch((reject) => {
+                                reply('Audio Not Found or unable to download.')
+                            })
+                        }).catch((err) => {
+                            reply`Unable to download,contact dev.`;
+                        });
+                    }
+                    am(url1)
+                    break;
+                // -------------------------------SONG------------------------------ //
+                case "song":
+                    if (!isGroup) {
+                        reply("❌ Group command only!");
+                        return;
+                    }
+                    if (args.length === 0) {
+                        reply(`❌ Query is empty! \nSend ${prefix}song query`);
+                        return;
+                    }
+                    let uname = args;
+                    const sonurl = await findSong(uname);
+                    console.log(sonurl);
+                    const gm = async (url1) => {
+                        let info = ytdl.getInfo(url1)
+                        let sany = getRandom('.mp3')
+                        reply(`_Downloading Song.._\nThis may take upto 1 to 2 min.`);
+                        const stream = ytdl(url1, { filter: info => info.audioBitrate == 160 || info.audioBitrate == 128 })
+                            .pipe(fs.createWriteStream(sany));
+                        console.log("Audio downloaded")
+                        await new Promise((resolve, reject) => {
+                            stream.on('error', reject)
+                            stream.on('finish', resolve)
+                        }).then(async (res) => {
+                            await sock.sendMessage(
+                                from,
+                                {
+                                    audio: fs.readFileSync(sany),
+                                },
+                                {
+                                    quoted: mek.messages[0]
+                                }
+                            ).then((resolved) => {
+                                console.log("Sent")
+                                fs.unlinkSync(sany)
+                            }).catch((reject) => {
+                                reply(`_Enable to download send a valid req_`);
+                            })
+                        }).catch((err) => {
+                            reply(`_Unable to download,contact dev_.`);
+                        });
+                    }
+                    gm(sonurl)
+                    break;
+                //-----------------------DIC-----------------------------//
+                case 'dic':
+                    if (!isGroup) return;
+                    let w = args[0]
+                    try {
+                        const dice = await dictionary(w)
+                        console.log(dice.word);
+                        reply(`*Term*:- ${dice.word}
+   *Pronounciation*:- ${dice.phonetic}
+   *Meaning*: ${dice.meanings[0].definitions[0].definition}
+   *Example*: ${dice.meanings[0].definitions[0].example}`)
+                    } catch (err) {
+                        return reply(`Sorry Word Not Found`)
+                    }
+                    break;
+                //--------------------------MEME---------------------------------//
                 case 'meme':
                     if (!isGroup) return;
                     reply(`*Sending...*`);
                     const memeURL = 'https://meme-api.herokuapp.com/gimme';
-                    await axios.get(`${memeURL}`).then((res) => {
-                        console.log("meme ", res.data);
+                    axios.get(`${memeURL}`).then((res) => {
                         let url = res.data.url;
                         if (url.includes("jpg") || url.includes("jpeg") || url.includes("png")) {
                             sock.sendMessage(
@@ -802,38 +1052,83 @@ const startSock = async () => {
                                     image: { url: res.data.url },
                                     caption: `${res.data.title}`
                                 },
-                                {
-                                    quoted: mek.messages[0],
-                                }
+                                { quoted: mek.messages[0] }
                             );
                         }
                         else {
-                            // downloadmeme(res.data.url).then(() => {
-                            // const buffer = fs.readFileSync("./pic.mp4") // load some gif
-                            // const options = {
-                            //     gifPlayback: true,
-                            //     mimetype: Mimetype.gif,
-                            //     caption: `${res.data.url}`
-                            // } // some metadata & caption
-                            sock.sendMessage(
-                                from,
-                                {
-                                    image: { url: res.data.url }
-                                },
-                                {
-                                    gifPlayback: true,
-                                    caption: `${res.data.url}`
-                                }
-                            )
-                            // fs.unlinkSync("./pic.mp4");
-                            // });
+                            downloadmeme(res.data.url).then(() => {
+                                // var opts = {
+                                //     rate: 50,
+                                //     codec: 'libx264'
+                                // };
+                                videofy('./pic.gif', './gif.mp4', opts, function (err) {
+                                    if (err) throw err;
+                                    sock.sendMessage(
+                                        from,
+                                        {
+                                            video: fs.readFileSync("./gif.mp4"),
+                                            gifPlayback: true
+                                        }
+                                    )
+                                })
+                                fs.unlinkSync("./pic.jpg");
+                                fs.unlinkSync("./gif.mp4")
+                            });
                         }
                     }).catch(() => {
                         console.log('Error');
                         reply(`Eror. Contect Dev.`);
                     });
                     break;
-                //-------------------------------TEXT MEME-------------------//
+                //-----------------------------IDP--------------------------------------------//
+                case 'idp':
+                    if (!isGroup) return;
+                    if (!args[0]) return reply(`_Enter User name after idp_`);
+                    let prof = args[0];
+                    const idp = async (prof) => {
+                        axios({
+                            url: `https://www.instagram.com/${prof}/?__a=1`,
+                            headers: {
+                                accept:
+                                    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,/;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                                'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+                                'cache-control': 'max-age=0',
+                                'sec-ch-ua':
+                                    '"Chromium";v="92", " Not A;Brand";v="99", "Google Chrome";v="92"',
+                                'sec-ch-ua-mobile': '?1',
+                                'sec-fetch-dest': 'document',
+                                'sec-fetch-mode': 'navigate',
+                                'sec-fetch-site': 'none',
+                                'sec-fetch-user': '?1',
+                                'upgrade-insecure-requests': '1',
+                                cookie:
+                                    'ig_did=305179C0-CE28-4DCD-847A-2F28A98B7DBF; ig_nrcb=1; mid=YQBN3wAEAAGfSSDsZYS9nf2a5MHO; csrftoken=KItbBYAsObQgmJU2CsfqfiRFtk8JXwgm; sessionid=29386738134%3A8NwzjrA3jruVB4%3A23; ds_user_id=29386738134; fbm_124024574287414=base_domain=.instagram.com; shbid="18377\05429386738134\0541674226938:01f7d2db0f9c512fc79336716e1cf02623129a7897f5ccb8d878999be86c0e010bb77920"; shbts="1642690938\05429386738134\0541674226938:01f73e613a6030436ef5f2cea6c7402b82a96c1a61f905b746d3951f49a7f2d2eab6d399"; fbsr_124024574287414=Ps5NinG2AjNMV4W927e_vwMrZVLCltfcbWGS3B5S3to.eyJ1c2VyX2lkIjoiMTAwMDA5NDY1ODIwODQyIiwiY29kZSI6IkFRQlZrOVljMF9DS24tVEpqZ21VWjdPT2dOelFVdkJyLXUzaENSOGR0RzZrbVQxdWszYUMtVDZJeV9QWjBCc1lCcTBmZkxNZmsyUVlMM0hMVGVhQ1pxb1RRQzdsOE9BYlZKdmlvTU5GZ0dncVdxZVQzNV9JM3ZOV0pCR3BsWXVQX0dGMDJMMEt2aTk4WXpxNFhrVWhaVUNRanpPcUthN01aOVdZaVc5SVFzZjRxU3FQTXUzVXlwRWVsMXQ4TjJkV2ZHSnNFYXRsNXBIRXBGMlJSSWljY0F1c3BTZHNPdWFZSThCeV9uRFpjQklUUFk0RzNJY0NiYnFtdXNFZXY5ZUlsMVlZQ0E0bE5ROWxyeGtZdU1IM05scWRFTmtlQjNwWVRjRGlsZDZtekNpNFgzcnZIZUtUMFVFNkJFYVlURFpCTmhaOTd5TmJWT1R1ZENWdk84UlFoYjV2Iiwib2F1dGhfdG9rZW4iOiJFQUFCd3pMaXhuallCQU0zaHBjU2lKUm50WWcyTm0xamhlUlFkd3VCeExaQ1V0UjV5endGSkdVQVpDbERGRThwdXdaQXRPMkxtQnMxNjNiVGQzZERhRVl3UGRiWHY1bE5PNEZaQVVoYUpBZDBIcTQyWkN5OVdicXh4blVnZml5MHBETm9rMXlQVzlUNHpaQVVsbHVGcmZ4OFFhRlRnZG9wRTBFMDBMaGg3OVhuWkN1QldteWZ0MlpBY1NYVUpMRjNWNzUwWkQiLCJhbGdvcml0aG0iOiJITUFDLVNIQTI1NiIsImlzc3VlZF9hdCI6MTY0MjY5NDAyM30; rur="VLL\05429386738134\0541674231548:01f7816fe2a5156acdb86c5eff76c0ae83ac053646c44ccc592f854fb9d24a18bfcfc3ac"',
+                            },
+                            referrerPolicy: 'strict-origin-when-cross-origin',
+                            body: null,
+                            mode: 'cors',
+                            method: 'GET'
+                        }).then((res) => {
+                            reply(`_Searching User..._`);
+                            sock.sendMessage(
+                                from,
+                                {
+                                    image: { url: res.data.graphql.user.profile_pic_url_hd },
+                                    caption: `*Username:* ${res.data.graphql.user.username}
+ *Bio:* ${res.data.graphql.user.biography}
+ *Followers:* ${res.data.graphql.user.edge_followed_by.count}
+ *Following:* ${res.data.graphql.user.edge_follow.count}`,
+                                },
+                                { quoted: mek.messages[0] }
+                            )
+                        }).catch((error) => {
+                            console.log(error);
+                            reply(`_Bad Luck_ :(\nGetting login page!!`);
+                        })
+                    }
+                    idp(prof);
+                    break;
+
                 case 'txtmeme':
                 case 'text':
                     if (!isGroup) return;
@@ -889,12 +1184,9 @@ const startSock = async () => {
                                     from,
                                     {
                                         image: fs.readFileSync(MemePath),
-                                        caption: 'Send by myBitBot'
+                                        mimetype: 'image/jpeg',
                                     },
-                                    {
-                                        quoted: mek.messages[0],
-                                        mimetype: 'image/jpeg'
-                                    }
+                                    { quoted: mek.messages[0] }
                                 )
                                 fs.unlinkSync(MemePath);
                                 fs.unlinkSync(media);
@@ -907,188 +1199,42 @@ const startSock = async () => {
                         reply(`*Must Include ; to saprate Header and Footer*`);
                     }
                     break;
-                /* -------------------------------TOIMG------------------------------- */
-                case "toimg":
-                case "image":
-                    if (!isGroup) {
-                        reply("❌ Group command only!");
-                        return;
-                    }
-                    if ((isMedia && !mek.messages[0].message.stickerMessage.isAnimated || isTaggedSticker)) {
-                        let downloadFilePath;
-                        if (mek.messages[0].message.stickerMessage) {
-                            downloadFilePath = mek.messages[0].message.stickerMessage;
-                        } else {
-                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.stickerMessage;
-                        }
-                        const stream = await downloadContentFromMessage(downloadFilePath, 'image');
-                        let buffer = Buffer.from([])
-                        for await (const chunk of stream) {
-                            buffer = Buffer.concat([buffer, chunk])
-                        }
-                        const media = getRandom('.jpeg');
-                        await writeFile(media, buffer)
-                        ffmpeg(`./${media}`)
-                            .fromFormat("webp_pipe")
-                            .save("result.png")
-                            .on("error", (err) => {
-                                console.log(err);
-                                reply(
-                                    "❌ There is some problem!\nOnly non-animated stickers can be convert to image!"
-                                );
-                            })
-                            .on("end", () => {
-                                sock.sendMessage(
-                                    from,
-                                    {
-                                        image: fs.readFileSync("result.png"),
-                                        caption: 'Send by myBitBot'
-                                    },
-                                    {
-                                        mimetype: 'image/png',
-                                        quoted: mek.messages[0],
-                                    }
-                                );
-                                fs.unlinkSync("result.png");
-                                fs.unlinkSync(media);
-                            });
-                    } else {
-                        reply(
-                            "❌ There is some problem!\nOnly non-animated stickers can be convert to image!"
-                        );
-                    }
+                //---------------------------------JID---------------------------------//
+                case 'jid':
+                    if (!allowedNumbs.includes(senderNumb)) return;
+                    reply(from);
                     break;
-                //---------------------JOKE----------------------------//
-                case 'joke':
+
+                //----------------------------------TTS-------------------------------------//
+                case 'tts':
                     if (!isGroup) return;
-                    if (!args[0]) args[0] = 'any';
-                    jokeFun(args[0].slice(0, 1).toUpperCase() + args[0].slice(1));
-                    // console.log(args[0].slice(0,1).toUpperCase() + args[0].slice(1));
-                    break;
-                //---------------------------------REMOVE_BG--------------------//
-                case 'removebg':
-                    if (!isGroup) return;
-                    if ((isMedia && !mek.messages[0].message.videoMessage || isTaggedImage)) {
-                        let downloadFilePath;
-                        if (mek.messages[0].message.imageMessage) {
-                            downloadFilePath = mek.messages[0].message.imageMessage;
-                        } else {
-                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
-                        }
-                        const stream = await downloadContentFromMessage(downloadFilePath, 'image');
-                        let buffer = Buffer.from([])
-                        for await (const chunk of stream) {
-                            buffer = Buffer.concat([buffer, chunk])
-                        }
-                        const media = getRandom('.jpeg');
-                        await writeFile(media, buffer)
-                        reply(`*Removing Background....*`);
-                        getRemoveBg(media).then(() => {
+                    var take = evv;
+                    OwnerSend(take + " =tts message");
+                    let uri = encodeURI(take);
+                    async function getTTS() {
+                        await axios.get(
+                            "https://api.xteam.xyz/attp?file&text=" + uri,
+                            { responseType: "arraybuffer" }
+                        ).then((ttinullimage) => {
                             sock.sendMessage(
                                 from,
                                 {
-                                    image: fs.readFileSync("./bg.png"),
-                                    mimetype: 'image/png',
-                                    caption: `*Removed!!*`
-                                },
-                                {
-                                    quoted: mek.messages[0]
+                                    sticker: Buffer.from(ttinullimage.data),
                                 }
-                            )
-                            fs.unlinkSync("./bg.png");
-                            fs.unlinkSync(media);
-                        }).catch((err) => {
-                            OwnerSend('*RemoveBG ERROR :* ' + err)
-                            console.log('Status : ', err.status);
-                            reply(`Website Error, Tag Owner or Mod : \n Need to change api key.`)
+                            );
+                            console.log('sent');
+                        }).catch(() => {
+                            reply(`_Website is Down_\nWait for Sometime`);
                         });
-                    } else {
-                        reply(`*Reply to image only*`);
                     }
-                    break;
-                //----------------------------ANIME---------------------------/
-                case 'anime':
-                    if (!isGroup) return;
-                    var name = content;
-                    OwnerSend("Args : " + name);
-                    if (name.includes('name') || name.includes('char')) {
-                        getAnimeRandom('quotes/character?name=' + name.toLowerCase().substring(4).trim().split(" ").join("+")).then((message) => {
-                            reply(message);
-                        }).catch((error) => {
-                            reply(error);
-                        });
-                    } else if (name.includes('title')) {
-                        mess = getAnimeRandom('quotes/anime?title=' + name.toLowerCase().substring(6).trim().split(" ").join("%20")).then((message) => {
-                            reply(message);
-                        }).catch((error) => {
-                            reply(error);
-                        });
-                    } else {
-                        getAnimeRandom('random').then((message) => {
-                            reply(message);
-                        }).catch((error) => {
-                            reply(error);
-                        })
-                    }
-                    break;
-                //-----------------------setDmtoZero-------------------//
-                case 'reset':
-                    if (OwnerNumb != sender) return;
-                    if (mek.messages[0].message.extendedTextMessage) {
-                        let taggedJid;
-                        if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
-                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
-                        } else {
-                            taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
-                        }
-                        setCountDMOwner(taggedJid);
-                        reply(`Reset Limit for that User`);
-                    } else if (args[0] == 'all' || args[0] == 'All') {
-                        removeCountDM();
-                        reply(`*Reset Dm Limit*`);
-                    } else {
-                        reply(`Reply to send reset all`);
-                    }
+                    getTTS();
                     break;
 
-                //-------------------GetCountDm-----------------------//
-                case 'limit':
-                    if (OwnerNumb == sender) {
-                        if (mek.messages[0].message.extendedTextMessage) {
-                            let taggedJid;
-                            if (mek.messages[0].message.extendedTextMessage.contextInfo.participant) {
-                                taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.participant;
-                            } else {
-                                taggedJid = mek.messages[0].message.extendedTextMessage.contextInfo.mentionedJid[0];
-                            }
-                            console.log('Tag : ', taggedJid);
-                            (async () => {
-                                const getDmCount = await getCountDM(taggedJid);
-                                reply(`*Monthly Limit* : ${getDmCount}/100`);
-                            })();
-                        }
-                    } else {
-                        (async () => {
-                            const getDmCount = await getCountDM(sender);
-                            reply(`*Your Monthly Limit* : ${getDmCount}/100`);
-                        })();
-                    }
-                    break;
+
                 //----------------------------STICKER--------------------------------------//
                 case 'sticker':
                 case 's':
-                    if (!isGroup) {
-                        await setCountDM(sender);
-                        if (getCountDM(sender) >= 100) {
-                            return reply('You have used your monthly limit.\nWait for next month.')
-                        }
-                        else {
-                            (async () => {
-                                const getDmCount = await getCountDM(sender);
-                                SendMessageNoReply(`*Limit Left* : ${getDmCount}/100`);
-                            })();
-                        }
-                    }
+                    if (!isGroup) return;
                     var packName = ""
                     var authorName = ""
                     if (mek.messages[0].message.extendedTextMessage) {
@@ -1128,10 +1274,10 @@ const startSock = async () => {
                         }
                     }
                     if (packName == "") {
-                        packName = "Bit"
+                        packName = "MD"
                     }
                     if (authorName == "") {
-                        authorName = "Bot"
+                        authorName = "BitBot"
                     }
                     outputOptions = [`-vcodec`, `libwebp`, `-vf`, `scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse`];
                     if ((args.includes('crop') == true) || (args.includes('c') == true)) {
@@ -1168,29 +1314,45 @@ const startSock = async () => {
                             buffer = Buffer.concat([buffer, chunk])
                         }
                         const media = getRandom('.jpeg');
-                        await writeFile(media, buffer);
-                        (async () => {
-                            reply('⌛Changing media to sticker⏳')//⌛Ruk Bhai..Kar raha ⏳
-                            const sticker1 = new Sticker(media, {
-                                pack: packName, // The pack name
-                                author: authorName, // The author name
-                                type: (args.includes('crop') || (args.includes("c"))) ? StickerTypes.CROPPED : args.includes("cc") ? StickerTypes.CIRCLE : StickerTypes.FULL,
-                                quality: 100,
-                            })
-                            const saveSticker = getRandom('.webp')
-                            await sticker1.toFile(saveSticker)
-                            await sock.sendMessage(
-                                from,
-                                {
-                                    sticker: fs.readFileSync(saveSticker)
-                                }
-                            )
-                            fs.unlinkSync(media);
-                            fs.unlinkSync(saveSticker)
-                        })();
+                        await writeFile(media, buffer)
+                        ran = getRandom('.webp')
+                        reply('⌛Changing media to sticker⏳')//⌛Ruk Bhai..Kar raha ⏳
+                        ffmpeg(`./${media}`).input(media).on('error', function (err) {
+                            fs.unlinkSync(media)
+                            console.log(`Error : ${err}`)
+                            reply('_❌ ERROR: Failed to convert image into sticker! ❌_')
+                        }).on('end', function () {
+                            buildSticker()
+                        }).addOutputOptions(outputOptions).toFormat('webp').save(ran)
+                        async function buildSticker() {
+                            if (args.includes('nometadata') == true) {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        sticker: fs.readFileSync(ran)
+                                    });
+                                fs.unlinkSync(media)
+                                fs.unlinkSync(ran)
+                            } else {
+                                const sticker1 = new Sticker(ran, {
+                                    pack: packName, // The pack name
+                                    author: authorName, // The author name
+                                })
+                                const saveSticker = getRandom('.webp')
+                                await sticker1.toFile(saveSticker)
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        sticker: fs.readFileSync(saveSticker)
+                                    });
+                                fs.unlinkSync(media)
+                                fs.unlinkSync(ran)
+                                fs.unlinkSync(saveSticker)
+                            }
+                        }
                     } else if ((isMedia && mek.messages[0].message.videoMessage.seconds < 11 || isTaggedVideo && mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.videoMessage.seconds < 11)) {
                         let downloadFilePath;
-                        if (mek.messages[0].message.videoMessage) {
+                        if (mek.messages[0].message.imageMessage) {
                             downloadFilePath = mek.messages[0].message.videoMessage;
                         } else {
                             downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.videoMessage;
@@ -1201,31 +1363,44 @@ const startSock = async () => {
                             buffer = Buffer.concat([buffer, chunk])
                         }
                         const media = getRandom('.mp4');
-                        await writeFile(media, buffer);
-                        (async () => {
-                            reply('⌛Changing media file to Sticker⏳')//⌛ Ho raha Thoda wait karle... ⏳
-                            const sticker1 = new Sticker(media, {
-                                pack: packName, // The pack name
-                                author: authorName, // The author name
-                                type: (args.includes('crop') || (args.includes("c"))) ? StickerTypes.CROPPED : args.includes("cc") ? StickerTypes.CIRCLE : StickerTypes.FULL,
-                                quality: 40,
-                            })
-                            const saveSticker = getRandom('.webp')
-                            await sticker1.toFile(saveSticker)
-                            await sock.sendMessage(
-                                from,
-                                {
-                                    sticker: fs.readFileSync(saveSticker)
-                                }
-                            )
-                            try {
-                                fs.unlinkSync(media);
+                        await writeFile(media, buffer)
+                        ran = getRandom('.webp')
+                        reply('⌛Changing media file to Sticker⏳')//⌛ Ho raha Thoda wait karle... ⏳
+                        ffmpeg(`./${media}`).inputFormat(media.split('.')[1]).on('error', function (err) {
+                            fs.unlinkSync(media)
+                            mediaType = media.endsWith('.mp4') ? 'video' : 'gif'
+                            reply(`_❌ ERROR: Failed to convert ${mediaType} to sticker! ❌_`)
+                        }).on('end', function () {
+                            buildSticker()
+                        }).addOutputOptions(outputOptions).toFormat('webp').save(ran)
+                        async function buildSticker() {
+                            if (args.includes('nometadata') == true) {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        sticker: fs.readFileSync(ran),
+                                    });
+                                fs.unlinkSync(media)
+                                fs.unlinkSync(ran)
+                            } else {
+                                const sticker1 = new Sticker(ran, {
+                                    pack: packName, // The pack name
+                                    author: authorName, // The author name
+                                })
+                                const saveSticker = getRandom('.webp')
+                                await sticker1.toFile(saveSticker)
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        sticker: fs.readFileSync(saveSticker)
+                                    });
+                                fs.unlinkSync(media)
+                                fs.unlinkSync(ran)
                                 fs.unlinkSync(saveSticker)
-                            } catch {
-                                console.log("error");
                             }
-                        })();
-                    } else {
+                        }
+                    }
+                    else {
                         reply(`❌ *Error reply to image or video only* `);
                         console.log('Error not replyed');
                     }
@@ -1314,431 +1489,9 @@ const startSock = async () => {
                         reply("Error.")
                     }
                     break;
-                //-------------------------------INSTA------------------------------//
-                case "insta":
-                case "i":
-                    if (!isGroup) {
-                        reply("❌ Group command only!");
-                        return;
-                    }
-                    if (args.length === 0) {
-                        reply(`❌ URL is empty! \nSend ${prefix}insta url`);
-                        return;
-                    }
-                    let urlInsta = args[0];
-                    if (
-                        !(
-                            urlInsta.includes("instagram.com/p/") ||
-                            urlInsta.includes("instagram.com/reel/") ||
-                            urlInsta.includes("instagram.com/tv/")
-                        )
-                    ) {
-                        reply(
-                            `❌ Wrong URL! Only Instagram posted videos, tv and reels can be downloaded.`
-                        );
-                        return;
-                    }
-                    if (urlInsta.includes("?"))
-                        urlInsta = urlInsta.split("/?")[0];
-                    console.log(urlInsta);
-                    OwnerSend("Downloading URL : " + urlInsta);
-                    reply(`*Downloading...Pls wait*`);
-                    ig.fetchPost(urlInsta).then((res) => {
-                        if (res.media_count == 1) {
-                            if (res.links[0].type == "video") {
-                                sock.sendMessage(
-                                    from,
-                                    {
-                                        video: { url: res.links[0].url }
-                                    },
-                                    { quoted: mek.messages[0] }
-                                )
-                            } else if (res.links[0].type == "image") {
-                                sock.sendMessage(
-                                    from,
-                                    {
-                                        image: { url: res.links[0].url }
-                                    },
-                                    { quoted: mek.messages[0] }
-                                )
-                            }
-                        } else if (res.media_count > 1) {
-                            for (let i = 0; i < res.media_count; i++) {
-                                if (res.links[i].type == "video") {
-                                    sock.sendMessage(
-                                        from,
-                                        {
-                                            video: { url: res.links[i].url }
-                                        },
-                                        { quoted: mek.messages[i] }
-                                    )
-                                } else if (res.links[i].type == "image") {
-                                    sock.sendMessage(
-                                        from,
-                                        {
-                                            image: { url: res.links[i].url }
-                                        },
-                                        { quoted: mek.messages[0] }
-                                    )
-                                }
-                            }
-                        }
-                    }).catch((error) => {
-                        console.log(error);
-                        reply('Error');
-                    });
-                    break;
-                //--------------------FB--------------------------------//
-                case 'fb':
-                    if (!isGroup) return;
-                    if (!args[0]) return reply(`*Enter fb link after ${prefix}fb <link>*`);
-                    console.log(args[0]);
-                    OwnerSend('Fb : ' + args[0])
-                    try {
-                        (async () => {
-                            let FBurl;
-                            await axios(args[0]).then((response) => {
-                                FBurl = response.request._redirectable._currentUrl
-                            }).then(() => {
-                                (async () => {
-                                    const res = await Facebook.getVideo(`${FBurl}`);
-                                    if (res.data.hasError == false) {
-                                        reply(`*Downloading Pls wait...*`)
-                                        if (res.data.body.videoHD) {
-                                            sock.sendMessage(
-                                                from,
-                                                {
-                                                    video: { url: res.data.body.videoHD },
-                                                    caption: 'Send by myBitBot'
-                                                },
-                                                {
-                                                    quoted: mek.messages[0]
-                                                }
-                                            )
-                                        } else {
-                                            sock.sendMessage(
-                                                from,
-                                                {
-                                                    video: { url: res.data.body.video },
-                                                    caption: 'Send by myBitBot'
-                                                },
-                                                {
-                                                    quoted: mek.messages[0]
-                                                }
-                                            )
-                                        }
-                                    } else if (res.data.hasError == true) {
-                                        reply(res.data.errorMessage)
-                                    }
-                                })();
-                            });
-                        })();
-                    } catch (err) {
-                        console.log('Fb Err : ', err, res.data.errorDescription);
-                        reply(`Api Error Tag Mod to let him know`)
-                    }
-                    break;
-                //------------------------------TWITTER--------------------//
-                case 'twitter':
-                    if (!isGroup) return;
-                    if (!args[0]) return reply(`Enter twitter  video link only after ${prefix}twitter <link>`);
-                    const twitterURL = args[0];
-                    try {
-                        (async () => {
-                            const res = Twitter.getVideo(twitterURL);
-                            if (res.data.hasError == false) {
-                                sock.sendMessage(
-                                    form,
-                                    {
-                                        video: { url: res.data.body.video },
-                                        caption: 'Send by myBitBot'
-                                    },
-                                    {
-                                        quoted: mek.messages[0]
-                                    }
-                                )
-                            } else {
-                                reply(res.data.errorMessage);
-                            }
-                        })
-                    } catch (err) {
-                        console.log('Twitter Err : ', err, res.data.errorDescription);
-                        reply(`Api Error Tag Mod to let him know`);
-                    }
-                    break;
-                //---------------------------------MOIVE--------------------//
-                case 'movie':
-                    if (!isGroup) return;
-                    if (!args[0]) return reply(`Provide Movie name.`);
-                    let movie = body.trim().split(/ +/).slice(1).join('+');
-                    OwnerSend("Movie : " + movie);
-                    let MovieUrl = '';
-                    await downloadAll('`' + movie).then((message) => {
-                        MovieUrl += message + "\n\n";
-                    }).catch(() => { });
-                    await downloadbolly('`' + movie).then((message) => {
-                        MovieUrl += message + "\n\n";
-                    }).catch(() => { });
-                    await downloadholly('`' + movie).then((message) => {
-                        MovieUrl += message + "\n\n";
-                    }).catch(() => { });
-                    if (MovieUrl != '')
-                        reply(`*Direct link for*😊 ${movie.split("+").join(" ")}\n\n` + MovieUrl);
-                    else {
-                        console.log("Not Found!!");
-                        reply(`*Sorry* No Movie Found\nCheck your _spelling or try another movie_.`);
-                    }
-                    break;
-                //--------------------------NSFW-------------------------------//
-                case 'nsfw':
-                    if (!isGroup) return;
-                    if ((isMedia && !mek.messages[0].message.videoMessage || isTaggedImage)) {
-                        let downloadFilePath;
-                        if (mek.messages[0].message.imageMessage) {
-                            downloadFilePath = mek.messages[0].message.imageMessage;
-                        } else {
-                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
-                        }
-                        const stream = await downloadContentFromMessage(downloadFilePath, 'image');
-                        let buffer = Buffer.from([])
-                        for await (const chunk of stream) {
-                            buffer = Buffer.concat([buffer, chunk])
-                        }
-                        deepai.setApiKey(deepAI);
-                        getcall(buffer)
-                    }
-                    else {
-                        reply(`*Reply to image only*`);
-                        console.log("Error not replyed");
-                    }
-                    break;
-                //--------------------------UD---------------------------//
-                case 'ud':
-                    if (!isGroup) return;
-                    try {
-                        let result = await ud.define(args[0])
-                        let term = result[0].word;
-                        let def = result[0].definition;
-                        let example = result[0].example;
-                        reply(`*Term*: ${term} 
-  *Definition*: ${def}
-  *Example*: ${example}`);
-                    }
-                    catch {
-                        reply("🙇‍♂️ Sorry to say but this word/creature does not exist")
-                    }
-                    break;
-                //-----------------------------------EMOJI-TO-STICKER------------------------------//
-                case 'pmoji':
-                    if (!isGroup) return;
-                    if (!args[0]) return reply(`❌ Enter emoji after pmoji`);
-                    OwnerSend('Args: ' + content);
-                    console.log('Args:', args);
-                    emoji.get(args[0]).then((response) => {
-                        let UrlEmoji = '';
-                        if (args.length == 1) {
-                            for (let i of response.images) {
-                                if (i.vendor.toLowerCase() == 'whatsapp')
-                                    UrlEmoji = i.url;
-                            }
-                        } else if (args.length == 2) {
-                            for (let i of response.images) {
-                                if (i.vendor.toLowerCase() == args[1].toLowerCase())
-                                    UrlEmoji = i.url;
-                            }
-                        }
-                        if (UrlEmoji == '') return reply('Emoji not Found for Args');
-                        sock.sendMessage(
-                            from,
-                            {
-                                image: { url: `${UrlEmoji}` },
-                                caption: `Emoji: ${response.emoji}
-Unicode: ${response.unicode}
-Name: ${response.name}`
-                            }
-                        )
-                    }).catch((error) => {
-                        reply(`❌ Emoji not found!!`);
-                        console.log(error);
-                    })
-                    break;
-                //-----------------------DIC-----------------------------//
-                case 'dic':
-                    if (!isGroup) return;
-                    let w = args[0]
-                    try {
-                        const dice = await dictionary(w)
-                        console.log(dice.word);
-                        reply(`*Term*:- ${dice.word}
-      *Pronounciation*:- ${dice.phonetic}
-      *Meaning*: ${dice.meanings[0].definitions[0].definition}
-      *Example*: ${dice.meanings[0].definitions[0].example}`)
-                    } catch (err) {
-                        return reply(`Sorry Word Not Found`)
-                    }
-                    break;
-                //----------------------------IDP------------------------//
-                case 'idp':
-                    if (!isGroup) return;
-                    if (!args[0]) return reply(`_Enter User name after idp_`);
-                    let prof = args[0];
-                    const idp = async (prof) => {
-                        axios({
-                            url: `https://www.instagram.com/${prof}/?__a=1`,
-                            headers: {
-                                accept:
-                                    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,/;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                                'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
-                                'cache-control': 'max-age=0',
-                                'sec-ch-ua':
-                                    '"Chromium";v="92", " Not A;Brand";v="99", "Google Chrome";v="92"',
-                                'sec-ch-ua-mobile': '?1',
-                                'sec-fetch-dest': 'document',
-                                'sec-fetch-mode': 'navigate',
-                                'sec-fetch-site': 'none',
-                                'sec-fetch-user': '?1',
-                                'upgrade-insecure-requests': '1',
-                                cookie:
-                                    'ig_did=305179C0-CE28-4DCD-847A-2F28A98B7DBF; ig_nrcb=1; mid=YQBN3wAEAAGfSSDsZYS9nf2a5MHO; csrftoken=KItbBYAsObQgmJU2CsfqfiRFtk8JXwgm; sessionid=29386738134%3A8NwzjrA3jruVB4%3A23; ds_user_id=29386738134; fbm_124024574287414=base_domain=.instagram.com; shbid="18377\05429386738134\0541674226938:01f7d2db0f9c512fc79336716e1cf02623129a7897f5ccb8d878999be86c0e010bb77920"; shbts="1642690938\05429386738134\0541674226938:01f73e613a6030436ef5f2cea6c7402b82a96c1a61f905b746d3951f49a7f2d2eab6d399"; fbsr_124024574287414=Ps5NinG2AjNMV4W927e_vwMrZVLCltfcbWGS3B5S3to.eyJ1c2VyX2lkIjoiMTAwMDA5NDY1ODIwODQyIiwiY29kZSI6IkFRQlZrOVljMF9DS24tVEpqZ21VWjdPT2dOelFVdkJyLXUzaENSOGR0RzZrbVQxdWszYUMtVDZJeV9QWjBCc1lCcTBmZkxNZmsyUVlMM0hMVGVhQ1pxb1RRQzdsOE9BYlZKdmlvTU5GZ0dncVdxZVQzNV9JM3ZOV0pCR3BsWXVQX0dGMDJMMEt2aTk4WXpxNFhrVWhaVUNRanpPcUthN01aOVdZaVc5SVFzZjRxU3FQTXUzVXlwRWVsMXQ4TjJkV2ZHSnNFYXRsNXBIRXBGMlJSSWljY0F1c3BTZHNPdWFZSThCeV9uRFpjQklUUFk0RzNJY0NiYnFtdXNFZXY5ZUlsMVlZQ0E0bE5ROWxyeGtZdU1IM05scWRFTmtlQjNwWVRjRGlsZDZtekNpNFgzcnZIZUtUMFVFNkJFYVlURFpCTmhaOTd5TmJWT1R1ZENWdk84UlFoYjV2Iiwib2F1dGhfdG9rZW4iOiJFQUFCd3pMaXhuallCQU0zaHBjU2lKUm50WWcyTm0xamhlUlFkd3VCeExaQ1V0UjV5endGSkdVQVpDbERGRThwdXdaQXRPMkxtQnMxNjNiVGQzZERhRVl3UGRiWHY1bE5PNEZaQVVoYUpBZDBIcTQyWkN5OVdicXh4blVnZml5MHBETm9rMXlQVzlUNHpaQVVsbHVGcmZ4OFFhRlRnZG9wRTBFMDBMaGg3OVhuWkN1QldteWZ0MlpBY1NYVUpMRjNWNzUwWkQiLCJhbGdvcml0aG0iOiJITUFDLVNIQTI1NiIsImlzc3VlZF9hdCI6MTY0MjY5NDAyM30; rur="VLL\05429386738134\0541674231548:01f7816fe2a5156acdb86c5eff76c0ae83ac053646c44ccc592f854fb9d24a18bfcfc3ac"',
-                            },
-                            referrerPolicy: 'strict-origin-when-cross-origin',
-                            body: null,
-                            mode: 'cors',
-                            method: 'GET'
-                        }).then((res) => {
-                            reply(`_Searching User..._`);
-                            sock.sendMessage(
-                                from,
-                                {
-                                    image: { url: res.data.graphql.user.profile_pic_url_hd },
-                                    caption: `${prof}`
-                                },
-                                {
-                                    quoted: mek.messages[0]
-                                }
-                            )
-                        }).catch((error) => {
-                            console.log(error);
-                            reply(`_Bad Luck_ :(\nGetting login page!!`);
-                        })
-                    }
-                    idp(prof);
-                    break;
-                //-------------------------FACT---------------------//
-                case 'fact':
-                    if (!isGroup) return;
-                    getFact().then((message) => {
-                        reply(`✍️(◔◡◔) *Amazing Fact* \n\n` + message);
-                    }).catch((Error) => {
-                        reply("Error");
-                    })
-                    break;
-                //---------------------------HORO------------------//
-                case 'horo':
-                    if (!isGroup) return;
-                    if (!args[0]) return reply(`Enter your horoscope.`)
-                    console.log("SENDER NUMB:", senderNumb);
-                    let horoscope = args[0];
-                    let h_Low = horoscope.toLowerCase();
-                    let l = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces']
-                    if (!l.includes(h_Low)) {
-                        reply("Kindly enter the right spelling ")//SAhi se daal bhai,sign 12 he hote hai :)       
-                    } else {
-                        const callhoro = await gethoro(h_Low);
-                        reply(` *Date Range*:-${callhoro.date_range}
- *Nature Hold's For you*:-${callhoro.description}
- *Compatibility*:-${callhoro.compatibility}
- *Mood*:-${callhoro.mood}
- *color*:-${callhoro.color}
- *Lucky Number*:-${callhoro.lucky_number}
- *Lucky time*:-${callhoro.lucky_time}`)
-                    }
-                    break;
-                /* ------------------------------- CASE: GENDER ------------------------------ */
-                case "gender":
-                    if (!isGroup) {
-                        reply("❌ Group command only!");
-                        return;
-                    }
-                    if (args.length === 0) {
-                        reply(`❌ Name is not given! \nSend ${prefix}gender firstname`);
-                        return;
-                    }
-                    let namePerson = args[0];
-                    if (namePerson.includes("@")) {
-                        reply(`❌ Don't tag! \nSend ${prefix}gender firstname`);
-                        return;
-                    }
-                    console.log('Name : ', namePerson);
-                    getGender(namePerson).then((message) => {
-                        reply(message);
-                    }).catch((error) => {
-                        reply(error);
-                    });
-                    break;
-                //------------------------------MP3------------------------------//
-                case 'mp3':
-                case 'mp4audio':
-                case 'tomp3':
-                    if (!isGroup) return;
-                    if ((isMedia && !mek.messages[0].message.imageMessage || isTaggedVideo)) {
-                        let downloadFilePath;
-                        if (mek.messages[0].message.videoMessage) {
-                            downloadFilePath = mek.messages[0].message.videoMessage;
-                        } else {
-                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.videoMessage;
-                        }
-                        const stream = await downloadContentFromMessage(downloadFilePath, 'video');
-                        let buffer = Buffer.from([])
-                        for await (const chunk of stream) {
-                            buffer = Buffer.concat([buffer, chunk])
-                        }
-                        const media = getRandom('.mp4')
-                        await writeFile(media, buffer)
-                        const path = getRandom('.mp3');
-                        function convert(input, output, callback) {
-                            ffmpeg(input)
-                                .output(output)
-                                .on('end', function () {
-                                    console.log('conversion ended');
-                                    callback(null);
-                                }).on('error', function (err) {
-                                    console.log('error: ', e.code, e.msg);
-                                    callback(err);
-                                }).run();
-                        }
-                        convert(media, path, function (err) {
-                            if (!err) {
-                                console.log('conversion complete');
-                                (async () => {
-                                    await sock.sendMessage(
-                                        from,
-                                        {
-                                            audio: fs.readFileSync(path),
-                                            mimetype: 'audio/mp4'
-                                        },
-                                        {
-                                            quoted: mek.messages[0]
-                                        }
-                                    )
-                                })();
-                            }
-                        });
-                    }
-                    else {
-                        console.log("No Media tag");
-                        reply(`*Reply to video only*`)
-                    }
-                    break;
-                //---------------------------------JID---------------------------------//
-                case 'jid':
-                    if (!allowedNumbs.includes(senderNumb)) return;
-                    reply(from);
-                    break;
                 /* ------------------------------- CASE: DELETE ------------------------------ */
                 case "delete":
                 case "d":
-                case 'del':
                     try {
                         if (!mek.messages[0].message.extendedTextMessage) return reply(`❌ Tag message of bot to delete.`);
                         if (!(mek.messages[0].message.extendedTextMessage.contextInfo.participant == botNumberJid)) {
@@ -1762,166 +1515,9 @@ Name: ${response.name}`
                         reply(`❌ Error!`);
                     }
                     break;
-                //-------------------------YT--------------------------//
-                case 'yt':
-                case 'ytv':
-                    if (!isGroup) return;
-                    if (!args[0]) return reply(`Type url after ${prefix}yt`);
-                    var YTurl = args[0];
-                    console.log(`${YTurl}`);
-                    OwnerSend('Yt : ' + YTurl)
-                    try {
-                        (async () => {
-                            const resV = await YouTube.getVideo(YTurl);
-                            let YTtitle = resV.data.body.meta.title
-                            for (let i = 0; i < resV.data.body.url.length; i++) {
-                                if (
-                                    resV.data.body.url[i].quality == 720
-                                    && resV.data.body.url[i].no_audio == false
-                                ) {
-                                    try {
-                                        sock.sendMessage(
-                                            from,
-                                            {
-                                                video: { url: resV.data.body.url[i].url },
-                                                caption: `*Title*: ${YTtitle}
-*Quality*: 720p`
-                                            },
-                                            {
-                                                quoted: mek.messages[0]
-                                            }
-                                        )
-                                    } catch {
-                                        reply(`No 720p Found`)
-                                    }
-                                } else if
-                                    (
-                                    resV.data.body.url[i].quality == 360
-                                    && resV.data.body.url[i].no_audio == false
-                                ) {
-                                    try {
-                                        sock.sendMessage(
-                                            from,
-                                            {
-                                                video: { url: resV.data.body.url[i].url },
-                                                caption: `*Title*: ${YTtitle}
-*Quality*: 360p`
-                                            },
-                                            {
-                                                quoted: mek.messages[0]
-                                            }
-                                        )
-                                    } catch {
-                                        reply('No 360p Found')
-                                    }
-                                }
-                            }
-                        })();
-                    } catch (error) {
-                        console.log(error);
-                        reply(`Unable to download,contact dev.`);
-                    }
-                    break;
-                //------------------------------YTA-------------------------//
-                case 'yta':
-                    if (!isGroup) return;
-                    if (!args[0]) return reply(`_Enter URl after yta_`);
-                    var url1 = args[0];
-                    console.log(`${url1}`)
-                    const am = async (url1) => {
-                        let info = ytdl.getInfo(url1)
-                        let sany = getRandom('.mp3')
-                        const stream = ytdl(url1, { filter: info => info.audioBitrate == 160 || info.audioBitrate == 128 })
-                            .pipe(fs.createWriteStream(sany));
-                        console.log("audio downloaded")
-                        reply('*Downloading Audio.....*\nThis may take upto 1 or 2 min.');
-                        await new Promise((resolve, reject) => {
-                            stream.on('error', reject)
-                            stream.on('finish', resolve)
-                        }).then(async (res) => {
-                            await sock.sendMessage(
-                                from,
-                                {
-                                    audio: fs.readFileSync(sany)
-                                },
-                                {
-                                    quoted: mek.messages[0]
-                                }
-                            ).then((resolved) => {
-                                console.log("Sent ")
-                                fs.unlinkSync(sany)
-                            }).catch((reject) => {
-                                reply('Audio Not Found or unable to download.')
-                            })
-                        }).catch((err) => {
-                            reply`Unable to download,contact dev.`;
-                        });
-                    }
-                    am(url1)
-                    break;
-                /* ------------------------------- CASE: SONG ------------------------------ */
-                case "song":
-                    if (!isGroup) {
-                        reply("❌ Group command only!");
-                        return;
-                    }
-                    if (args.length === 0) {
-                        reply(`❌ Query is empty! \nSend ${prefix}song query`);
-                        return;
-                    }
-                    let uname = args;
-                    const sonurl = await findSong(uname);
-                    console.log(sonurl);
-                    const gm = async (url1) => {
-                        let info = ytdl.getInfo(url1)
-                        let sany = getRandom('.mp3')
-                        reply(`_Downloading Song.._\nThis may take upto 1 to 2 min.`);
-                        const stream = ytdl(url1, { filter: info => info.audioBitrate == 160 || info.audioBitrate == 128 })
-                            .pipe(fs.createWriteStream(sany));
-                        console.log("Audio downloaded")
-                        await new Promise((resolve, reject) => {
-                            stream.on('error', reject)
-                            stream.on('finish', resolve)
-                        }).then(async (res) => {
-                            await sock.sendMessage(
-                                from,
-                                {
-                                    audio: fs.readFileSync(sany),
-                                },
-                                {
-                                    quoted: mek.messages[0]
-                                }
-                            ).then((resolved) => {
-                                console.log("Sent")
-                                fs.unlinkSync(sany)
-                            }).catch((reject) => {
-                                reply(`_Enable to download send a valid req_`);
-                            })
-                        }).catch((err) => {
-                            reply(`_Unable to download,contact dev_.`);
-                        });
-                    }
-                    gm(sonurl)
-                    break;
-                //------------------------SOURCE------------------------//
-                case 'dev':
-                case 'devloper':
-                case 'source':
-                    const templateButtons = [
-                        { index: 1, urlButton: { displayText: '⭐ Project Link!', url: 'https://github.com/jacktheboss220/MyBitBot-MD' } },
-                        { index: 2, urlButton: { displayText: 'Contact Me!', url: 'https://github.com/jacktheboss220/MyBitBot-MD/issues' } },
-                        { index: 3, quickReplyButton: { displayText: '.source', id: 'id1' } }
-                    ]
-                    const templateMessage = {
-                        text: "ɢɪᴠᴇ ᴀ ꜱᴛᴀʀ ɪꜰ ʏᴏᴜ ʟɪᴋᴇ ᴛʜᴇ ʙᴏᴛ\nꜰᴏᴜɴᴅ ᴀ ʙᴜɢ ᴏʀ ᴇʀʀᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴍᴇ ʙᴇʟᴏᴡ",
-                        footer: 'ᴮᴵᵀᴮᴼᵀ',
-                        templateButtons: templateButtons
-                    }
-                    await sock.sendMessage(from, templateMessage);
-                    break;
-                ///////////////////////\\\\\\\\\\\\\\\\\\\\\\\\
-                ////////////////////ADMIN\\\\\\\\\\\\\\\\\\\\\\
-                ///////////////////////////////////////////////
+                ///////////////////////\\\\\\\\\\\\\\\\\\\\\\
+                ////////////////////ADMIN\\\\\\\\\\\\\\\\\\\\\
+                //////////////////////////////////////////////
                 //------------------------ADD-----------------------------//
                 case 'add':
                     if (!isGroup) return;
@@ -2254,12 +1850,21 @@ Name: ${response.name}`
                         SendMessageNoReply(mess);
                     }
                     break;
+                //-------------------------------REMOVE-BOT-------------------------//
+                case 'removebot':
+                    if (!isGroup) return;
+                    if (!isGroupAdmins && !allowedNumbs.includes(senderNumb)) {
+                        reply("❌ kya matlab tum admin nhi ho 🙄");
+                        return;
+                    }
+                    reply(`_Bye_\n*Mera Time Aa gya*`);
+                    sock.groupLeave(from)
+                    break;
                 default:
-                    //----------------------------------------------------------------------------------------------------//
                     if (isGroup)
-                        reply(`*Wrong Command or Tag Mod To let him know this command is not added*`);
+                        reply(`*Error Not Added All commands*`);
             }
         }
-    })
-}
-startSock()
+    });
+};
+startSock();
