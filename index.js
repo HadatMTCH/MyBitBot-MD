@@ -1,11 +1,13 @@
 /**
- * WhatsApp Bot written in Baileys-md version
  * @author jacktheboss220
+ * @link https://www.github.com/jacktheboss220
  * @version 1.0.1
- * 
+ * @description WhatsApp Bot written in Baileys-md version with database linked to store the login data
  */
 
-require('dotenv').config()
+require('dotenv').config() // loading env vaiables
+
+
 //-----------------CONST-MODULE_VARIABLE----------------------------//
 const axios = require('axios')
 const fs = require('fs')
@@ -14,6 +16,9 @@ const videofy = require("videofy")
 const memeMaker = require('@erickwendel/meme-maker')
 const ffmpeg = require('fluent-ffmpeg')//sticker module
 const { writeFile } = require('fs/promises')
+const { getCmdToBlock, setCmdToBlock } = require('./DB/cmdBlockDB') //block cmd module
+const { getBlockWarning, setBlockWarning, removeBlockWarning } = require('./DB/blockDB') //block module 
+const { downloadAll, downloadholly, downloadbolly } = require('./plugins/movie') //movie module
 const { Sticker, StickerTypes } = require('wa-sticker-formatter')
 const { HelpGUI } = require('./plugins/helpGui')
 const ytdl = require('ytdl-core');
@@ -26,7 +31,7 @@ const {
     YouTube,
     TikTok
 } = require('social-downloader-sdk');
-//----------------------------------Baileys-----------------------//
+//----------------------------------Baileys-Const----------------------//
 const {
     default: makeWASocket,
     DisconnectReason,
@@ -42,8 +47,8 @@ const {
 } = require("@adiwajshing/baileys");
 //-----------------------------------------------------------------//
 //-----------------------------------CONST--------------------------//
-const OwnerNumb = process.env.OWNER_NUMB + '@s.whatsapp.net';
-const prefix = '.';
+const OwnerNumb = process.env.myNumber + '@s.whatsapp.net';
+const prefix = '-';
 const allowedNumbs = ["918318585418"];
 const INSTA_API_KEY = process.env.INSTA_API_KEY;
 const P = require("pino");
@@ -53,7 +58,11 @@ let ig = new igApi(INSTA_API_KEY);
 ig.setCookie(INSTA_API_KEY);
 const deepAI = process.env.DEEPAI_KEY;
 //---------------------------------------------------------------------------------------//
-// --------------------------------- SERVER --------------------------------- //
+
+const more = String.fromCharCode(8206);
+const readMore = more.repeat(4001);
+
+// --------------------------------- SERVER -------------------------------------------- //
 const express = require("express");
 const app = express();
 app.use(express.urlencoded({ extended: true }));
@@ -72,6 +81,11 @@ const logger = MAIN_LOGGER.child({});
 logger.level = 'warn';
 
 //--------------------------------------AUTH-FILE--------------------------------//
+try {
+    fs.unlinkSync("./auth_info_multi.json");
+} catch {
+    console.log("File Already Deleted");
+}
 const { state, saveState } = useSingleFileAuthState("./auth_info_multi.json");
 // start a connection
 // console.log('state : ', state.creds);
@@ -213,9 +227,11 @@ const findSong = async (sname) => {
     let st = videos[0].url;
     return st;
 }
-//-------------------------------------------------------------------------------------------//
-//---------------------------------------------------------------------------------------------------------------//
-//---------------------------MAIN-FUNTION-----------------------------------------//
+//--------------------------------------------------------------------------------//
+//--------------------------------------------------------------------------------//
+//-------------------------------MAIN-FUNTION-------------------------------------//
+//--------------------------------------------------------------------------------//
+//--------------------------------------------------------------------------------//
 const startSock = async () => {
     // fetch latest version of WA Web
     const { version, isLatest } = await fetchLatestBaileysVersion();
@@ -337,7 +353,7 @@ const startSock = async () => {
         console.log("connection update", update);
     });
     // listen for when the auth credentials is updated
-    // sock.ev.on("creds.update", saveState)
+    sock.ev.on("creds.update", saveState)
     // return sock;
     // store.bind(sock.ev);
     const sendMessageWTyping = async (msg, jid) => {
@@ -428,15 +444,6 @@ const startSock = async () => {
             }
             return admins;
         };
-        const getSupperAdmin = (participants) => {
-            admins = [];
-            for (let i of participants) {
-                if (i.admin == 'superadmin') {
-                    admins.push(i.id);
-                    return admins;
-                }
-            }
-        }
         //-------------------------------BOT-NUMBER------------------------------//
         let botNumberJid = sock.user.id;
         botNumberJid =
@@ -461,7 +468,8 @@ const startSock = async () => {
                             : type == "templateButtonReplyMessage"
                                 ? msg.message.templateButtonReplyMessage.selectedDisplayText
                                 : type == "listResponseMessage"
-                                    ? msg.message.listResponseMessage.title : "";
+                                    ? msg.message.listResponseMessage.title
+                                    : "";
         //----------------------------------------------------------------------------------------//
         if (body[1] == " ") body = body[0] + body.slice(2);
         const evv = body.trim().split(/ +/).slice(1).join(' ');
@@ -470,6 +478,7 @@ const startSock = async () => {
         const isCmd = body.startsWith(prefix);
         const isGroup = from.endsWith("@g.us");
         const groupMetadata = isGroup ? await sock.groupMetadata(from) : "";
+        // console.log("Grp DATA : ", groupMetadata.desc.toString());
         let sender = isGroup ? msg.key.participant : mek.messages[0].key.remoteJid;
         const senderNumb = sender.includes(":") ? sender.split(":")[0] : sender.split("@")[0];
         if (msg.key.fromMe) sender = botNumberJid;
@@ -482,7 +491,7 @@ const startSock = async () => {
         //-----------------------------------------------------------------------//
         const isBotGroupAdmins = groupAdmins.includes(botNumberJid) || false;
         const isGroupAdmins = groupAdmins.includes(senderjid) || false;
-        const SuperAdmin = getSupperAdmin(groupMembers);
+        const SuperAdmin = groupMetadata.owner;
         const isMedia = type === "imageMessage" || type === "videoMessage";
         const isTaggedImage = type === "extendedTextMessage" && content.includes("imageMessage");
         const isTaggedVideo = type === "extendedTextMessage" && content.includes("videoMessage");
@@ -568,13 +577,30 @@ const startSock = async () => {
         }
 
         //--------------------------------------------------DM-------------------------------------------------//
-        if (!isGroup)
-            reply(`ʜᴇʟʟᴏ ${mek.messages[0].pushName}\nɪ'ᴍ ʙɪᴛʙᴏᴛ ᴀ ᴡʜᴀᴛꜱᴀᴘᴘ ʙᴏᴛ ʙᴜᴛ ɪ ᴅᴏɴ'ᴛ ᴡᴏʀᴋ ɪɴ ᴅɪʀᴇᴄᴛ ᴍᴇꜱꜱᴀɢᴇꜱ (ᴅᴍ). ꜱᴏ, ᴅᴏɴ'ᴛ ꜱᴘᴀᴍ ʜᴇʀᴇ./nᴛʜᴀɴᴋꜱ`);
+        // if (!isGroup)
+        // reply(`ʜᴇʟʟᴏ ${mek.messages[0].pushName}\nɪ'ᴍ ʙɪᴛʙᴏᴛ ᴀ ᴡʜᴀᴛꜱᴀᴘᴘ ʙᴏᴛ ʙᴜᴛ ɪ ᴅᴏɴ'ᴛ ᴡᴏʀᴋ ɪɴ ᴅɪʀᴇᴄᴛ ᴍᴇꜱꜱᴀɢᴇꜱ (ᴅᴍ). ꜱᴏ, ᴅᴏɴ'ᴛ ꜱᴘᴀᴍ ʜᴇʀᴇ./nᴛʜᴀɴᴋꜱ`);
         //----------------------------------------------------------------------------------------------------//
+        //--------------------------------BLOCK-CMDs--------------------//
+        let blockCommandsInDesc = []; //commands to be blocked
+        if (groupDesc) {
+            let firstLineDesc = groupDesc.toString().split("\n")[0];
+            blockCommandsInDesc = firstLineDesc.split(",");
+        }
+        var resBlock = await getCmdToBlock(from);
+        let blockCommandsInDB = resBlock.toString().split(",");
         ///////////////////////////////////////////
         //////////////////COMMANDS\\\\\\\\\\\\\\\\\
         ///////////////////////////////////////////
         if (isCmd) {
+            if (command != '') {
+                if (blockCommandsInDesc.includes(command) || (blockCommandsInDB.includes(command))) {
+                    reply("❌ Command blocked for this group!");
+                    return;
+                }
+            }
+            //-----------------------BLOCK-USER-----------------------//
+            let blockCount = await getBlockWarning(sender);
+            if (blockCount == 1) return reply(`You can't use the bot as u are *blocked*.`);
             // Display every command info
             console.log("[COMMAND] ", command, "[FROM] ", senderNumb, "[name] " + mek.messages[0].pushName + "[IN] ", groupName);
             // Send every command info to Owner
@@ -670,12 +696,12 @@ const startSock = async () => {
                     } else {
                         const callhoro = await gethoro(h_Low);
                         reply(`*Date Range*:-${callhoro.date_range}
-  *Nature Hold's For you*:-${callhoro.description}
-  *Compatibility*:-${callhoro.compatibility}
-  *Mood*:-${callhoro.mood}
-  *color*:-${callhoro.color}
-  *Lucky Number*:-${callhoro.lucky_number}
-  *Lucky time*:-${callhoro.lucky_time}`)
+   *Nature Hold's For you*:-${callhoro.description}
+   *Compatibility*:-${callhoro.compatibility}
+   *Mood*:-${callhoro.mood}
+   *color*:-${callhoro.color}
+   *Lucky Number*:-${callhoro.lucky_number}
+   *Lucky time*:-${callhoro.lucky_time}`)
                     }
                     break;
 
@@ -803,8 +829,8 @@ const startSock = async () => {
                             {
                                 image: { url: `${UrlEmoji}` },
                                 caption: `Emoji: ${response.emoji}
- Unicode: ${response.unicode}
- Name: ${response.name}`
+  Unicode: ${response.unicode}
+  Name: ${response.name}`
                             }
                         )
                     }).catch((error) => {
@@ -906,7 +932,7 @@ const startSock = async () => {
                                             {
                                                 video: { url: resV.data.body.url[i].url },
                                                 caption: `*Title*: ${YTtitle}
-     *Quality*: 720p`
+      *Quality*: 720p`
                                             },
                                             {
                                                 quoted: mek.messages[0]
@@ -926,7 +952,7 @@ const startSock = async () => {
                                             {
                                                 video: { url: resV.data.body.url[i].url },
                                                 caption: `*Title*: ${YTtitle}
-     *Quality*: 360p`
+      *Quality*: 360p`
                                             },
                                             {
                                                 quoted: mek.messages[0]
@@ -978,6 +1004,30 @@ const startSock = async () => {
                         });
                     }
                     am(url1)
+                    break;
+                //---------------------------------MOIVE--------------------//
+                case 'movie':
+                    if (!isGroup) return;
+                    if (!args[0]) return reply(`Provide Movie name.`);
+                    let movie = body.trim().split(/ +/).slice(1).join('+');
+                    OwnerSend("Movie : " + movie);
+                    let MovieUrl = '';
+                    await downloadAll('`' + movie).then((message) => {
+                        MovieUrl += message + "\n\n";
+                    })
+                    // .catch(() => { });
+                    // await downloadbolly('`' + movie).then((message) => {
+                    //     MovieUrl += message + "\n\n";
+                    // }).catch(() => { });
+                    // await downloadholly('`' + movie).then((message) => {
+                    //     MovieUrl += message + "\n\n";
+                    // }).catch(() => { });
+                    if (MovieUrl != '')
+                        reply(`*Direct link for*😊 ${movie.split("+").join(" ")}\n\n` + MovieUrl);
+                    else {
+                        console.log("Not Found!!");
+                        reply(`*Sorry* No Movie Found\nCheck your _spelling or try another movie_.`);
+                    }
                     break;
                 // -------------------------------SONG------------------------------ //
                 case "song":
@@ -1031,9 +1081,9 @@ const startSock = async () => {
                         const dice = await dictionary(w)
                         console.log(dice.word);
                         reply(`*Term*:- ${dice.word}
-   *Pronounciation*:- ${dice.phonetic}
-   *Meaning*: ${dice.meanings[0].definitions[0].definition}
-   *Example*: ${dice.meanings[0].definitions[0].example}`)
+    *Pronounciation*:- ${dice.phonetic}
+    *Meaning*: ${dice.meanings[0].definitions[0].definition}
+    *Example*: ${dice.meanings[0].definitions[0].example}`)
                     } catch (err) {
                         return reply(`Sorry Word Not Found`)
                     }
@@ -1115,9 +1165,9 @@ const startSock = async () => {
                                 {
                                     image: { url: res.data.graphql.user.profile_pic_url_hd },
                                     caption: `*Username:* ${res.data.graphql.user.username}
- *Bio:* ${res.data.graphql.user.biography}
- *Followers:* ${res.data.graphql.user.edge_followed_by.count}
- *Following:* ${res.data.graphql.user.edge_follow.count}`,
+  *Bio:* ${res.data.graphql.user.biography}
+  *Followers:* ${res.data.graphql.user.edge_followed_by.count}
+  *Following:* ${res.data.graphql.user.edge_follow.count}`,
                                 },
                                 { quoted: mek.messages[0] }
                             )
@@ -1204,7 +1254,56 @@ const startSock = async () => {
                     if (!allowedNumbs.includes(senderNumb)) return;
                     reply(from);
                     break;
-
+                /* -------------------------------TOIMG------------------------------- */
+                case "toimg":
+                case "image":
+                    if (!isGroup) {
+                        reply("❌ Group command only!");
+                        return;
+                    }
+                    if ((isMedia && !mek.messages[0].message.stickerMessage.isAnimated || isTaggedSticker)) {
+                        let downloadFilePath;
+                        if (mek.messages[0].message.stickerMessage) {
+                            downloadFilePath = mek.messages[0].message.stickerMessage;
+                        } else {
+                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.stickerMessage;
+                        }
+                        const stream = await downloadContentFromMessage(downloadFilePath, 'image');
+                        let buffer = Buffer.from([])
+                        for await (const chunk of stream) {
+                            buffer = Buffer.concat([buffer, chunk])
+                        }
+                        const media = getRandom('.jpeg');
+                        await writeFile(media, buffer)
+                        ffmpeg(`./${media}`)
+                            .fromFormat("webp_pipe")
+                            .save("result.png")
+                            .on("error", (err) => {
+                                console.log(err);
+                                reply(
+                                    "❌ There is some problem!\nOnly non-animated stickers can be convert to image!"
+                                );
+                            })
+                            .on("end", () => {
+                                sock.sendMessage(
+                                    from,
+                                    {
+                                        image: fs.readFileSync("result.png"),
+                                        caption: 'Send by myBitBot'
+                                    },
+                                    {
+                                        mimetype: 'image/png',
+                                        quoted: mek.messages[0],
+                                    }
+                                );
+                                fs.unlinkSync("result.png");
+                            });
+                    } else {
+                        reply(
+                            "❌ There is some problem!\nOnly non-animated stickers can be convert to image!"
+                        );
+                    }
+                    break;
                 //----------------------------------TTS-------------------------------------//
                 case 'tts':
                     if (!isGroup) return;
@@ -1234,7 +1333,18 @@ const startSock = async () => {
                 //----------------------------STICKER--------------------------------------//
                 case 'sticker':
                 case 's':
-                    if (!isGroup) return;
+                    if (!isGroup) {
+                        await setCountDM(sender);
+                        if (getCountDM(sender) >= 100) {
+                            return reply('You have used your monthly limit.\nWait for next month.')
+                        }
+                        else {
+                            (async () => {
+                                const getDmCount = await getCountDM(sender);
+                                SendMessageNoReply(`*Limit Left* : ${getDmCount}/100`);
+                            })();
+                        }
+                    }
                     var packName = ""
                     var authorName = ""
                     if (mek.messages[0].message.extendedTextMessage) {
@@ -1274,32 +1384,10 @@ const startSock = async () => {
                         }
                     }
                     if (packName == "") {
-                        packName = "MD"
+                        packName = "myBitBot"
                     }
                     if (authorName == "") {
-                        authorName = "BitBot"
-                    }
-                    outputOptions = [`-vcodec`, `libwebp`, `-vf`, `scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse`];
-                    if ((args.includes('crop') == true) || (args.includes('c') == true)) {
-                        outputOptions = [
-                            `-vcodec`,
-                            `libwebp`,
-                            `-vf`,
-                            `crop=w='min(min(iw\,ih)\,500)':h='min(min(iw\,ih)\,500)',scale=500:500,setsar=1,fps=15`,
-                            `-loop`,
-                            `0`,
-                            `-ss`,
-                            `00:00:00.0`,
-                            `-t`,
-                            `00:00:10.0`,
-                            `-preset`,
-                            `default`,
-                            `-an`,
-                            `-vsync`,
-                            `0`,
-                            `-s`,
-                            `512:512`
-                        ];
+                        authorName = "multi-device"
                     }
                     if ((isMedia && !mek.messages[0].message.videoMessage || isTaggedImage)) {
                         let downloadFilePath;
@@ -1314,45 +1402,29 @@ const startSock = async () => {
                             buffer = Buffer.concat([buffer, chunk])
                         }
                         const media = getRandom('.jpeg');
-                        await writeFile(media, buffer)
-                        ran = getRandom('.webp')
-                        reply('⌛Changing media to sticker⏳')//⌛Ruk Bhai..Kar raha ⏳
-                        ffmpeg(`./${media}`).input(media).on('error', function (err) {
-                            fs.unlinkSync(media)
-                            console.log(`Error : ${err}`)
-                            reply('_❌ ERROR: Failed to convert image into sticker! ❌_')
-                        }).on('end', function () {
-                            buildSticker()
-                        }).addOutputOptions(outputOptions).toFormat('webp').save(ran)
-                        async function buildSticker() {
-                            if (args.includes('nometadata') == true) {
-                                sock.sendMessage(
-                                    from,
-                                    {
-                                        sticker: fs.readFileSync(ran)
-                                    });
-                                fs.unlinkSync(media)
-                                fs.unlinkSync(ran)
-                            } else {
-                                const sticker1 = new Sticker(ran, {
-                                    pack: packName, // The pack name
-                                    author: authorName, // The author name
-                                })
-                                const saveSticker = getRandom('.webp')
-                                await sticker1.toFile(saveSticker)
-                                sock.sendMessage(
-                                    from,
-                                    {
-                                        sticker: fs.readFileSync(saveSticker)
-                                    });
-                                fs.unlinkSync(media)
-                                fs.unlinkSync(ran)
-                                fs.unlinkSync(saveSticker)
-                            }
-                        }
+                        await writeFile(media, buffer);
+                        (async () => {
+                            reply('⌛Changing media to sticker⏳')//⌛Ruk Bhai..Kar raha ⏳
+                            const sticker1 = new Sticker(media, {
+                                pack: packName, // The pack name
+                                author: authorName, // The author name
+                                type: (args.includes('crop') || (args.includes("c"))) ? StickerTypes.CROPPED : args.includes("cc") ? StickerTypes.CIRCLE : StickerTypes.FULL,
+                                quality: 100,
+                            })
+                            const saveSticker = getRandom('.webp')
+                            await sticker1.toFile(saveSticker)
+                            await sock.sendMessage(
+                                from,
+                                {
+                                    sticker: fs.readFileSync(saveSticker)
+                                }
+                            )
+                            fs.unlinkSync(media);
+                            fs.unlinkSync(saveSticker)
+                        })();
                     } else if ((isMedia && mek.messages[0].message.videoMessage.seconds < 11 || isTaggedVideo && mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.videoMessage.seconds < 11)) {
                         let downloadFilePath;
-                        if (mek.messages[0].message.imageMessage) {
+                        if (mek.messages[0].message.videoMessage) {
                             downloadFilePath = mek.messages[0].message.videoMessage;
                         } else {
                             downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.videoMessage;
@@ -1363,44 +1435,31 @@ const startSock = async () => {
                             buffer = Buffer.concat([buffer, chunk])
                         }
                         const media = getRandom('.mp4');
-                        await writeFile(media, buffer)
-                        ran = getRandom('.webp')
-                        reply('⌛Changing media file to Sticker⏳')//⌛ Ho raha Thoda wait karle... ⏳
-                        ffmpeg(`./${media}`).inputFormat(media.split('.')[1]).on('error', function (err) {
-                            fs.unlinkSync(media)
-                            mediaType = media.endsWith('.mp4') ? 'video' : 'gif'
-                            reply(`_❌ ERROR: Failed to convert ${mediaType} to sticker! ❌_`)
-                        }).on('end', function () {
-                            buildSticker()
-                        }).addOutputOptions(outputOptions).toFormat('webp').save(ran)
-                        async function buildSticker() {
-                            if (args.includes('nometadata') == true) {
-                                sock.sendMessage(
-                                    from,
-                                    {
-                                        sticker: fs.readFileSync(ran),
-                                    });
-                                fs.unlinkSync(media)
-                                fs.unlinkSync(ran)
-                            } else {
-                                const sticker1 = new Sticker(ran, {
-                                    pack: packName, // The pack name
-                                    author: authorName, // The author name
-                                })
-                                const saveSticker = getRandom('.webp')
-                                await sticker1.toFile(saveSticker)
-                                sock.sendMessage(
-                                    from,
-                                    {
-                                        sticker: fs.readFileSync(saveSticker)
-                                    });
-                                fs.unlinkSync(media)
-                                fs.unlinkSync(ran)
+                        await writeFile(media, buffer);
+                        (async () => {
+                            reply('⌛Changing media file to Sticker⏳')//⌛ Ho raha Thoda wait karle... ⏳
+                            const sticker1 = new Sticker(media, {
+                                pack: packName, // The pack name
+                                author: authorName, // The author name
+                                type: (args.includes('crop') || (args.includes("c"))) ? StickerTypes.CROPPED : args.includes("cc") ? StickerTypes.CIRCLE : StickerTypes.FULL,
+                                quality: 40,
+                            })
+                            const saveSticker = getRandom('.webp')
+                            await sticker1.toFile(saveSticker)
+                            await sock.sendMessage(
+                                from,
+                                {
+                                    sticker: fs.readFileSync(saveSticker)
+                                }
+                            )
+                            try {
+                                fs.unlinkSync(media);
                                 fs.unlinkSync(saveSticker)
+                            } catch {
+                                console.log("error");
                             }
-                        }
-                    }
-                    else {
+                        })();
+                    } else {
                         reply(`❌ *Error reply to image or video only* `);
                         console.log('Error not replyed');
                     }
@@ -1448,10 +1507,10 @@ const startSock = async () => {
                             }
                         }
                         if (packName == "") {
-                            packName = "Bit"
+                            packName = "myBitBot"
                         }
                         if (authorName == "") {
-                            authorName = "Bot"
+                            authorName = "md"
                         }
                         if ((isTaggedSticker)) {
                             let downloadFilePath;
@@ -1464,22 +1523,41 @@ const startSock = async () => {
                             const media = getRandom('.webp');
                             await writeFile(media, buffer);
                             (async () => {
-                                const sticker1 = new Sticker(media, {
-                                    pack: packName, // The pack name
-                                    author: authorName, // The author name
-                                    type: StickerTypes.DEFAULT,
-                                    quality: 40,
-                                })
-                                const saveSticker = getRandom('.webp')
-                                await sticker1.toFile(saveSticker)
-                                await sock.sendMessage(
-                                    from,
-                                    {
-                                        sticker: fs.readFileSync(saveSticker)
-                                    }
-                                )
-                                fs.unlinkSync(media);
-                                fs.unlinkSync(saveSticker)
+                                if (args.includes('author') == false || args.includes('pack') == false) {
+                                    const sticker1 = new Sticker(media, {
+                                        pack: evv, // The pack name
+                                        // author: authorName, // The author name
+                                        type: StickerTypes.DEFAULT,
+                                        quality: 40,
+                                    })
+                                    const saveSticker = getRandom('.webp')
+                                    await sticker1.toFile(saveSticker)
+                                    await sock.sendMessage(
+                                        from,
+                                        {
+                                            sticker: fs.readFileSync(saveSticker)
+                                        }
+                                    )
+                                    fs.unlinkSync(media);
+                                    fs.unlinkSync(saveSticker)
+                                } else {
+                                    const sticker1 = new Sticker(media, {
+                                        pack: packName, // The pack name
+                                        author: authorName, // The author name
+                                        type: StickerTypes.DEFAULT,
+                                        quality: 40,
+                                    })
+                                    const saveSticker = getRandom('.webp')
+                                    await sticker1.toFile(saveSticker)
+                                    await sock.sendMessage(
+                                        from,
+                                        {
+                                            sticker: fs.readFileSync(saveSticker)
+                                        }
+                                    )
+                                    fs.unlinkSync(media);
+                                    fs.unlinkSync(saveSticker)
+                                }
                             })();
                         } else {
                             reply(`*Reply To Sticker Only*`);
@@ -1518,6 +1596,50 @@ const startSock = async () => {
                 ///////////////////////\\\\\\\\\\\\\\\\\\\\\\
                 ////////////////////ADMIN\\\\\\\\\\\\\\\\\\\\\
                 //////////////////////////////////////////////
+                //----------------------------setCmdToBlock-----------------------------------//
+                case 'blockc':
+                    if (!allowedNumbs.includes(senderNumb) || !isGroupAdmins) return;
+                    if (!args[0]) return reply(`Enter a cmd to block`);
+                    var resBlock = await getCmdToBlock(from);
+                    resBlock = (resBlock == -1 || resBlock == '') ? args[0] : resBlock + ',' + args[0];
+                    setCmdToBlock(from, resBlock).then(() => {
+                        console.log("blockde");
+                        reply('*Blocked* _' + args[0] + '_ *in this group*.')
+                    });
+                    break;
+                case 'emptyc':
+                    if (!allowedNumbs.includes(senderNumb) || !isGroupAdmins) return;
+                    setCmdToBlock(from, '').then(() => {
+                        console.log('Done');
+                        reply(`*Remove all cmd from db*`);
+                    });
+                    break;
+                case 'getblockc':
+                    if (!allowedNumbs.includes(senderNumb) || !isGroupAdmins) return;
+                    var resBlock = await getCmdToBlock(from);
+                    if (resBlock == -1 || resBlock == '') {
+                        console.log("empty");
+                        reply('Empty');
+                    } else {
+                        console.log(resBlock);
+                        reply(`*Commands Block in this Group are* : ` + resBlock);
+                    }
+                    break;
+                case 'removec':
+                    if (!allowedNumbs.includes(senderNumb) || !isGroupAdmins) return;
+                    if (!args[0]) return reply(`Enter a cmd to remove`);
+                    var resBlock = await getCmdToBlock(from);
+                    resBlockC = [];
+                    resBlock = resBlock.split(",");
+                    for (let i = 0; i < resBlock.length; i++) {
+                        if (resBlock[i] == args[0]);
+                        else
+                            resBlockC.push(resBlock[i]);
+                    }
+                    setCmdToBlock(from, resBlockC.toString()).then(() => {
+                        reply('*Allowed* _' + args[0] + ' *in this Group*.')
+                    })
+                    break;
                 //------------------------ADD-----------------------------//
                 case 'add':
                     if (!isGroup) return;

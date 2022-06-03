@@ -13,3 +13,10 @@ const pool = new Pool(proConfig);
 module.exports = {
     query: (text, params) => pool.query(text, params)
 }
+// function clear() {
+//     pool.query(`begin;
+// set transaction read write;
+// DROP table auth;
+// COMMIT;`)
+// };
+// clear();

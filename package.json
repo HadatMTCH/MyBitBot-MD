@@ -1,5 +1,5 @@
 {
-    "name": "mybitbot",
+    "name": "mybitbot-md",
     "version": "0.1.0",
     "description": "well...Unique and intresting project",
     "main": "index.js",
@@ -11,7 +11,7 @@
     },
     "keywords": [],
     "author": "mahesh",
-    "license": "ISC",
+    "license": "MIT",
     "dependencies": {
         "@adiwajshing/baileys": "^4.1.0",
         "@adiwajshing/keyed-db": "^0.2.4",
