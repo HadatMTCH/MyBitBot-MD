@@ -1,9 +1,9 @@
 /**
- * @author jacktheboss220
- * @link https://www.github.com/jacktheboss220
- * @version 1.0.1
- * @description WhatsApp Bot written in Baileys-md version with database linked to store the login data
- */
+* @author jacktheboss220
+* @link https://www.github.com/jacktheboss220
+* @version 1.0.1
+* @description WhatsApp Bot written in Baileys-md version with database linked to store the login data
+*/
 
 require('dotenv').config() // loading env vaiables
 
@@ -353,7 +353,7 @@ const startSock = async () => {
         console.log("connection update", update);
     });
     // listen for when the auth credentials is updated
-    sock.ev.on("creds.update", saveState)
+    // sock.ev.on("creds.update", saveState)
     // return sock;
     // store.bind(sock.ev);
     const sendMessageWTyping = async (msg, jid) => {
@@ -932,7 +932,7 @@ const startSock = async () => {
                                             {
                                                 video: { url: resV.data.body.url[i].url },
                                                 caption: `*Title*: ${YTtitle}
-      *Quality*: 720p`
+ *Quality*: 720p`
                                             },
                                             {
                                                 quoted: mek.messages[0]
@@ -952,7 +952,7 @@ const startSock = async () => {
                                             {
                                                 video: { url: resV.data.body.url[i].url },
                                                 caption: `*Title*: ${YTtitle}
-      *Quality*: 360p`
+ *Quality*: 360p`
                                             },
                                             {
                                                 quoted: mek.messages[0]
