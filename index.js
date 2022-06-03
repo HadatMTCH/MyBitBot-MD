@@ -815,46 +815,46 @@ const startSock = async () => {
                         reply('Error');
                     });
                     break;
-                //---------------------------------REMOVE_BG--------------------//
-                case 'removebg':
-                    if (!isGroup) return;
-                    if ((isMedia && !mek.messages[0].message.videoMessage || isTaggedImage)) {
-                        let downloadFilePath;
-                        if (mek.messages[0].message.imageMessage) {
-                            downloadFilePath = mek.messages[0].message.imageMessage;
-                        } else {
-                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
-                        }
-                        const stream = await downloadContentFromMessage(downloadFilePath, 'image');
-                        let buffer = Buffer.from([])
-                        for await (const chunk of stream) {
-                            buffer = Buffer.concat([buffer, chunk])
-                        }
-                        const media = getRandom('.jpeg');
-                        await writeFile(media, buffer)
-                        reply(`*Removing Background....*`);
-                        getRemoveBg(media).then(() => {
-                            sock.sendMessage(
-                                from,
-                                {
-                                    image: fs.readFileSync("./bg.png"),
-                                    mimetype: 'image/png',
-                                    caption: `*Removed!!*`
-                                },
-                                {
-                                    quoted: mek.messages[0]
-                                }
-                            )
-                            fs.unlinkSync("./bg.png");
-                        }).catch((err) => {
-                            OwnerSend('*RemoveBG ERROR :* ' + err)
-                            console.log('Status : ', err.status);
-                            reply(`Website Error, Tag Owner or Mod : \n Need to change api key.`)
-                        });
-                    } else {
-                        reply(`*Reply to image only*`);
-                    }
-                    break;
+                // //---------------------------------REMOVE_BG--------------------//
+                // case 'removebg':
+                //     if (!isGroup) return;
+                //     if ((isMedia && !mek.messages[0].message.videoMessage || isTaggedImage)) {
+                //         let downloadFilePath;
+                //         if (mek.messages[0].message.imageMessage) {
+                //             downloadFilePath = mek.messages[0].message.imageMessage;
+                //         } else {
+                //             downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
+                //         }
+                //         const stream = await downloadContentFromMessage(downloadFilePath, 'image');
+                //         let buffer = Buffer.from([])
+                //         for await (const chunk of stream) {
+                //             buffer = Buffer.concat([buffer, chunk])
+                //         }
+                //         const media = getRandom('.jpeg');
+                //         await writeFile(media, buffer)
+                //         reply(`*Removing Background....*`);
+                //         getRemoveBg(media).then(() => {
+                //             sock.sendMessage(
+                //                 from,
+                //                 {
+                //                     image: fs.readFileSync("./bg.png"),
+                //                     mimetype: 'image/png',
+                //                     caption: `*Removed!!*`
+                //                 },
+                //                 {
+                //                     quoted: mek.messages[0]
+                //                 }
+                //             )
+                //             fs.unlinkSync("./bg.png");
+                //         }).catch((err) => {
+                //             OwnerSend('*RemoveBG ERROR :* ' + err)
+                //             console.log('Status : ', err.status);
+                //             reply(`Website Error, Tag Owner or Mod : \n Need to change api key.`)
+                //         });
+                //     } else {
+                //         reply(`*Reply to image only*`);
+                //     }
+                //     break;
                 //--------------------------NSFW-------------------------------//
                 case 'nsfw':
                     if (!isGroup) return;
