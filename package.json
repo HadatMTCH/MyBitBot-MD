@@ -13,7 +13,7 @@
     "author": "mahesh",
     "license": "MIT",
     "dependencies": {
-        "@adiwajshing/baileys": "^4.1.0",
+        "@adiwajshing/baileys": "git+ssh://git@github.com/adiwajshing/baileys.git#a98484c38bc92055e3c660a86687ee0425bc5c5b",
         "@adiwajshing/keyed-db": "^0.2.4",
         "@erickwendel/meme-maker": "^2.3.1",
         "@phaticusthiccy/open-apis": "^1.4.0",
