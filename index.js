@@ -581,23 +581,23 @@ const startSock = async () => {
         // reply(`ʜᴇʟʟᴏ ${mek.messages[0].pushName}\nɪ'ᴍ ʙɪᴛʙᴏᴛ ᴀ ᴡʜᴀᴛꜱᴀᴘᴘ ʙᴏᴛ ʙᴜᴛ ɪ ᴅᴏɴ'ᴛ ᴡᴏʀᴋ ɪɴ ᴅɪʀᴇᴄᴛ ᴍᴇꜱꜱᴀɢᴇꜱ (ᴅᴍ). ꜱᴏ, ᴅᴏɴ'ᴛ ꜱᴘᴀᴍ ʜᴇʀᴇ./nᴛʜᴀɴᴋꜱ`);
         //----------------------------------------------------------------------------------------------------//
         //--------------------------------BLOCK-CMDs--------------------//
-        let blockCommandsInDesc = []; //commands to be blocked
-        if (groupDesc) {
-            let firstLineDesc = groupDesc.toString().split("\n")[0];
-            blockCommandsInDesc = firstLineDesc.split(",");
-        }
-        var resBlock = await getCmdToBlock(from);
-        let blockCommandsInDB = resBlock.toString().split(",");
+        // let blockCommandsInDesc = []; //commands to be blocked
+        // if (groupDesc) {
+        //     let firstLineDesc = groupDesc.toString().split("\n")[0];
+        //     blockCommandsInDesc = firstLineDesc.split(",");
+        // }
+        // var resBlock = await getCmdToBlock(from);
+        // let blockCommandsInDB = resBlock.toString().split(",");
         ///////////////////////////////////////////
         //////////////////COMMANDS\\\\\\\\\\\\\\\\\
         ///////////////////////////////////////////
         if (isCmd) {
-            if (command != '') {
-                if (blockCommandsInDesc.includes(command) || (blockCommandsInDB.includes(command))) {
-                    reply("❌ Command blocked for this group!");
-                    return;
-                }
-            }
+            // if (command != '') {
+            //     if (blockCommandsInDesc.includes(command) || (blockCommandsInDB.includes(command))) {
+            //         reply("❌ Command blocked for this group!");
+            //         return;
+            //     }
+            // }
             //-----------------------BLOCK-USER-----------------------//
             let blockCount = await getBlockWarning(sender);
             if (blockCount == 1) return reply(`You can't use the bot as u are *blocked*.`);
@@ -918,6 +918,29 @@ const startSock = async () => {
                     console.log(`${YTurl}`);
                     OwnerSend('Yt : ' + YTurl)
                     try {
+                        // let info = await ytdl.getInfo(url)
+                        // let videotitle = info.videoDetails.title;
+                        // const path = getRandom('.mp4');
+                        // reply(`*Downloading Video.....*\n_This may take upto 1 to 2 min.._`)
+                        // const stream = ytdl(url, { filter: info => info.itag == 22 || info.itag == 18 })
+                        //     .pipe(fs.createWriteStream(path));
+                        // console.log("Video downloaded")
+                        // await new Promise((resolve, reject) => {
+                        //     stream.on('error', reject)
+                        //     stream.on('finish', resolve)
+                        // })
+                        // await sock.sendMessage(
+                        //     from,
+                        //     {
+                        //         video: fs.readFileSync(path)
+                        //     },
+                        //     {
+                        //         caption: `${videotitle}`,
+                        //         quoted: mek.messages[0]
+                        //     }
+                        // )
+                        // console.log("Sent ")
+                        // fs.unlinkSync(path)
                         (async () => {
                             const resV = await YouTube.getVideo(YTurl);
                             let YTtitle = resV.data.body.meta.title
@@ -932,7 +955,7 @@ const startSock = async () => {
                                             {
                                                 video: { url: resV.data.body.url[i].url },
                                                 caption: `*Title*: ${YTtitle}
- *Quality*: 720p`
+*Quality*: 720p`
                                             },
                                             {
                                                 quoted: mek.messages[0]
@@ -952,7 +975,7 @@ const startSock = async () => {
                                             {
                                                 video: { url: resV.data.body.url[i].url },
                                                 caption: `*Title*: ${YTtitle}
- *Quality*: 360p`
+*Quality*: 360p`
                                             },
                                             {
                                                 quoted: mek.messages[0]
