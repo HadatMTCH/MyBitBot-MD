@@ -11,14 +11,17 @@ require('dotenv').config() // loading env vaiables
 //-----------------CONST-MODULE_VARIABLE----------------------------//
 const axios = require('axios')
 const fs = require('fs')
+const ud = require('urban-dictionary')
 const deepai = require('deepai')
 const videofy = require("videofy")
 const memeMaker = require('@erickwendel/meme-maker')
 const ffmpeg = require('fluent-ffmpeg')//sticker module
 const { writeFile } = require('fs/promises')
+const { getQuote } = require('./plugins/quote')
 const { getCmdToBlock, setCmdToBlock } = require('./DB/cmdBlockDB') //block cmd module
 const { getBlockWarning, setBlockWarning, removeBlockWarning } = require('./DB/blockDB') //block module 
 const { downloadAll, downloadholly, downloadbolly } = require('./plugins/movie') //movie module
+const { getRemoveBg } = require('./plugins/removebg'); // removebg module
 const { Sticker, StickerTypes } = require('wa-sticker-formatter')
 const { HelpGUI } = require('./plugins/helpGui')
 const ytdl = require('ytdl-core');
@@ -31,6 +34,14 @@ const {
     YouTube,
     TikTok
 } = require('social-downloader-sdk');
+
+const {
+    getCountDM,
+    setCountDM,
+    removeCountDM,
+    setCountDMOwner
+} = require('./DB/countDMDB');
+
 //----------------------------------Baileys-Const----------------------//
 const {
     default: makeWASocket,
@@ -79,6 +90,7 @@ app.listen(port, () => {
 let MAIN_LOGGER = P({ timestamp: () => `,"time":"${new Date().toJSON()}"` });
 const logger = MAIN_LOGGER.child({});
 logger.level = 'warn';
+
 
 //--------------------------------------AUTH-FILE--------------------------------//
 try {
@@ -663,6 +675,22 @@ const startSock = async () => {
                         return OwnerSend('Term: ' + err);
                     }
                     break;
+                //--------------------------UD---------------------------//
+                case 'ud':
+                    if (!isGroup) return;
+                    try {
+                        let result = await ud.define(args[0])
+                        let term = result[0].word;
+                        let def = result[0].definition;
+                        let example = result[0].example;
+                        reply(`*Term*: ${term} 
+  *Definition*: ${def}
+  *Example*: ${example}`);
+                    }
+                    catch {
+                        reply("🙇‍♂️ Sorry to say but this word/creature does not exist")
+                    }
+                    break;
                 //---------------------------MY-NAME--------------------------//
                 case 'my':
                     if (!isGroup) return;
@@ -683,6 +711,14 @@ const startSock = async () => {
                     if (!isGroup) return;
                     await getRandomAD();
                     break;
+                //---------------------QUOTE-----------------------------//
+                case "quote":
+                case "q":
+                    if (!isGroup) return;
+                    let quote = await getQuote();
+                    reply(`ʕ•̫͡•ʔ❤️ 𝗧𝗼𝗱𝗮𝘆'𝘀 𝗤𝘂𝗼𝘁𝗲 𝗙𝗼𝗿 𝗬𝗼𝘂  ❤️ʕ•̫͡•ʔ\n\n${quote} `);
+                    break;
+
                 //-------------------HORO-----------------------//
                 case 'horo':
                     if (!isGroup) return;
@@ -778,6 +814,46 @@ const startSock = async () => {
                         console.log(error);
                         reply('Error');
                     });
+                    break;
+                //---------------------------------REMOVE_BG--------------------//
+                case 'removebg':
+                    if (!isGroup) return;
+                    if ((isMedia && !mek.messages[0].message.videoMessage || isTaggedImage)) {
+                        let downloadFilePath;
+                        if (mek.messages[0].message.imageMessage) {
+                            downloadFilePath = mek.messages[0].message.imageMessage;
+                        } else {
+                            downloadFilePath = mek.messages[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
+                        }
+                        const stream = await downloadContentFromMessage(downloadFilePath, 'image');
+                        let buffer = Buffer.from([])
+                        for await (const chunk of stream) {
+                            buffer = Buffer.concat([buffer, chunk])
+                        }
+                        const media = getRandom('.jpeg');
+                        await writeFile(media, buffer)
+                        reply(`*Removing Background....*`);
+                        getRemoveBg(media).then(() => {
+                            sock.sendMessage(
+                                from,
+                                {
+                                    image: fs.readFileSync("./bg.png"),
+                                    mimetype: 'image/png',
+                                    caption: `*Removed!!*`
+                                },
+                                {
+                                    quoted: mek.messages[0]
+                                }
+                            )
+                            fs.unlinkSync("./bg.png");
+                        }).catch((err) => {
+                            OwnerSend('*RemoveBG ERROR :* ' + err)
+                            console.log('Status : ', err.status);
+                            reply(`Website Error, Tag Owner or Mod : \n Need to change api key.`)
+                        });
+                    } else {
+                        reply(`*Reply to image only*`);
+                    }
                     break;
                 //--------------------------NSFW-------------------------------//
                 case 'nsfw':
