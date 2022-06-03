@@ -633,7 +633,7 @@ const startSock = async () => {
                 case 'alive':
                     if (!isGroup) return;
                     const buttons = [
-                        { buttonId: 'id1', buttonText: { displayText: '.help' }, type: 1 }
+                        { buttonId: 'id1', buttonText: { displayText: '-help' }, type: 1 }
                     ]
 
                     const buttonMessage = {
