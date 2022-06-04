@@ -1,4 +1,6 @@
 node_modules
 .idea
-
+.env
 package-lock.json
+commands
+indexLess.js
