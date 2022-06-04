@@ -4,3 +4,4 @@ node_modules
 package-lock.json
 commands
 indexLess.js
+auth_info_multi.json
