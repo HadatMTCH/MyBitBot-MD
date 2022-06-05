@@ -91,7 +91,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
                     const sticker1 = new Sticker(media, {
                         pack: evv,
                         type: StickerTypes.DEFAULT,
-                        quality: isAnimated ? 50 : 100,
+                        quality: isAnimated ? 40 : 100,
                     })
                     const saveSticker = getRandom('.webp')
                     await sticker1.toFile(saveSticker)
@@ -110,7 +110,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
                         pack: packName, // The pack name
                         author: authorName, // The author name
                         type: StickerTypes.DEFAULT,
-                        quality: isAnimated ? 50 : 100,
+                        quality: isAnimated ? 40 : 100,
                     })
                     const saveSticker = getRandom('.webp')
                     await sticker1.toFile(saveSticker)
