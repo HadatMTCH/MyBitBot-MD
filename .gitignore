@@ -1,7 +1,6 @@
+plugins
 node_modules
-.idea
 .env
 package-lock.json
 indexOld.js
 auth_info_multi.json
-plugins
