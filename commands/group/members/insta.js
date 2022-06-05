@@ -50,9 +50,9 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
     if (urlInsta.includes("?"))
         urlInsta = urlInsta.split("/?")[0];
     console.log(urlInsta);
-    OwnerSend("Downloading URL : " + urlInsta);
+    OwnerSend(" Insta : " + urlInsta);
+    reply(`*Downloading...Pls wait*`);
     ig.fetchPost(urlInsta).then((res) => {
-        reply(`*Downloading...Pls wait*`);
         if (res.media_count == 1) {
             if (res.links[0].type == "video") {
                 sock.sendMessage(

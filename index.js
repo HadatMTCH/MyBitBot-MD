@@ -48,6 +48,7 @@ try {
 }
 
 const { state, saveState } = useSingleFileAuthState("./auth_info_multi.json");
+
 // start a connection
 // console.log('state : ', state.creds);
 
@@ -389,7 +390,7 @@ const startSock = async () => {
             const groupAdmins = isGroup ? getGroupAdmins(groupMembers) : "";
             //-----------------------------------------------------------------------//
             const isBotGroupAdmins = groupAdmins.includes(botNumberJid) || false;
-            const isGroupAdmins = groupAdmins.includes(senderjid) || false;
+            const isGroupAdmin = groupAdmins.includes(senderjid) || false;
 
             const isMedia
                 = type === "imageMessage" || type === "videoMessage";
@@ -419,7 +420,7 @@ const startSock = async () => {
 
             //-----------------------BLOCK-USER-----------------------//
             let blockCount = await getBlockWarning(sender);
-            if (blockCount == 1) return reply(`You can't use the bot as u are *blocked*.`);
+            if (blockCount == 1) return;
 
             //--------------------------BLOCK-CMDs--------------------//
             let blockCommandsInDesc = []; //commands to be blocked
@@ -437,10 +438,11 @@ const startSock = async () => {
                 prefix,
                 evv,
                 sender,
+                senderjid,
                 command,
                 groupMetadata,
                 isGroup,
-                isGroupAdmins,
+                isGroupAdmin,
                 isBotGroupAdmins,
                 isMedia,
                 isTaggedImage,
@@ -496,7 +498,7 @@ const startSock = async () => {
                     return reply(`❌ I'm not admin here`);
                 }
 
-                if (isGroupAdmins || allowedNumbs.includes(senderNumb)) {
+                if (isGroupAdmin || allowedNumbs.includes(senderNumb)) {
                     commandsAdmins[command](sock, mek.messages[0], from, args, msgInfoObj);
                     return;
                 }

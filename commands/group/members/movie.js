@@ -8,7 +8,6 @@ module.exports.command = () => {
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
     let { evv } = msgInfoObj;
-
     const reply = (take) => {
         sock.sendMessage(
             from,
@@ -19,6 +18,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
             { quoted: msg }
         );
     }
+    if (!args[0]) return reply('Provide Movie Name.');
 
     let link = baseurl + evv.toLowerCase().split(" ").join("+");
     console.log(link);
