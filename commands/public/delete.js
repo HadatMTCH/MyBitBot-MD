@@ -7,11 +7,11 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
     let { botNumberJid, isGroup } = msgInfoObj;
 
     if (!isGroup) return;
-    
+
     const reply = (take) => {
         sock.sendMessage(
             from,
-            { text: tske },
+            { text: take },
             { quoted: msg }
         );
     }
