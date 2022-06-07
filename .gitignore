@@ -4,3 +4,4 @@ node_modules
 package-lock.json
 indexOld.js
 auth_info_multi.json
+movieRes.js
