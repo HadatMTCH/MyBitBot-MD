@@ -22,7 +22,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
 
     let link = baseurl + evv.toLowerCase().split(" ").join("+");
     console.log(link);
-    let url = '';
+    let url = `Direct link for ${evv}\n\n`;
     const res = await axios({
         method: "GET",
         url: link,
@@ -34,10 +34,10 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
         for (let i = 0; i < word.length; i++) {
             if (word[i].startsWith("<a href")) {
                 if (word[i].endsWith('mkv"') || (word[i].endsWith('mp4"')) || (word[i].endsWith('avi"')))
-                    url += "🎬 https://pronoob-aio.ml/" + word[i].substr(9, word[i].length - 10) + "\n\n";
+                    url += "🎬 https://pronoob-aio-drive.cf/" + word[i].substr(9, word[i].length - 10) + "\n\n";
             }
         }
-        if (url != '') {
+        if (url != `Direct link for ${evv}\n\n`) {
             reply(url);
         } else {
             reply(`*Sorry* No Movie Found\nCheck your _spelling or try another movie_.`)
