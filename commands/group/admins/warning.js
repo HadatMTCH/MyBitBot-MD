@@ -8,7 +8,7 @@ require('dotenv').config();
 const myNumber = process.env.myNumber + '@s.whatsapp.net';
 
 module.exports.command = () => {
-    let cmd = ["warn", "warning", "unwarn", "getwarn"];
+    let cmd = ["warn", "warning", "unwarn"];
     return { cmd, handler };
 }
 
