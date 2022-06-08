@@ -5,8 +5,8 @@ module.exports.command = () => {
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
 
-    let { groupMetadata } = msgInfoObj;
-    
+    let { groupMetadata, isBotGroupAdmins } = msgInfoObj;
+
     const reply = (take) => {
         sock.sendMessage(
             from,
@@ -14,7 +14,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
             { quoted: msg }
         );
     }
-
+    if (!isBotGroupAdmins) return reply(`❌ I'm not admin here`);
     let taggedJid;
     if (msg.message.extendedTextMessage) {
         taggedJid = msg.message.extendedTextMessage.contextInfo.participant;

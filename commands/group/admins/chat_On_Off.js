@@ -4,16 +4,16 @@ module.exports.command = () => {
 }
 
 const handler = async (sock, msg, from, args, msgInfoObj) => {
+    let { isBotGroupAdmins } = msgInfoObj;
 
-    const reply = (text) => {
+    const reply = (take) => {
         sock.sendMessage(
             from,
-            { text },
+            { text: take },
             { quoted: msg }
         );
     }
-
-
+    if (!isBotGroupAdmins) return reply(`❌ I'm not admin here`);
     if (!args[0]) return reply(`❌ *Provide On/Off*`);
 
     args[0] = args[0].toLowerCase();

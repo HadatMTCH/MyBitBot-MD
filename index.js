@@ -494,9 +494,7 @@ const startSock = async () => {
                     return;
                 }
 
-                if (!isBotGroupAdmins) {
-                    return reply(`❌ I'm not admin here`);
-                }
+                // if (!isBotGroupAdmins)  return reply(`❌ I'm not admin here`);
 
                 if (isGroupAdmin || allowedNumbs.includes(senderNumb)) {
                     commandsAdmins[command](sock, mek.messages[0], from, args, msgInfoObj);
