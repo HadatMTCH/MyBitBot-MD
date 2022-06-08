@@ -532,7 +532,7 @@ const startSock = async () => {
             sock.sendMessage(
                 from,
                 {
-                    text: `*${mek.messages[0].pushName}* vro \n\nUse ${prefix}help\n\nThis is new version of myBitBot.\nAll commands are not added yet. _Please wait_`
+                    text: `*${mek.messages[0].pushName}* \n\n*Please Wait*. This is new version of myBitBot.\nAll commands are not added yet.`
                 },
                 { quoted: mek.messages[0] }
             );
