@@ -1,5 +1,5 @@
 const axios = require("axios");
-const baseurl = "https://pronoob-aio.ml/Sct?search=";
+const baseurl = "https://pronoob-aio-drive.cf/Sct?search=";
 
 module.exports.command = () => {
     let cmd = ["movie"];
