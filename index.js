@@ -205,6 +205,7 @@ let commandsAdmins = {};
 let commandsOwners = {};
 
 const prefix = "-";
+// const prefix = ".";
 
 const addCommands = async () => {
     let path = "./commands/public/";
