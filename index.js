@@ -2,7 +2,7 @@
 * @author jacktheboss220 <mahesh.kumar.mk.0229@gmail.com>
 * @link https://www.github.com/jacktheboss220
 * @version 1.1.0
-* @file main file in this repo for login and auth storage
+* @file  index.js - all commands and login data
 * @description WhatsApp Bot written in Baileys version with database linked to store the login data
 */
 
@@ -13,6 +13,7 @@ const {
     default: makeWASocket,
     DisconnectReason,
     useSingleFileAuthState,
+    downloadMediaMessage,
     fetchLatestBaileysVersion,
 } = require("@adiwajshing/baileys");
 
@@ -114,7 +115,7 @@ async function fetchauth() {
                             identifierKey: data.signalidentitieskey
                         }
                     ],
-                    lastAccountSyncTimestamp: 0, // To allow bot to read the messages
+                    lastAccountSyncTimestamp: 0, // remove the last timeStamp from db
                     // lastAccountSyncTimestamp: Number(data.lastaccountsynctimestampb),
                     myAppStateKeyId: data.myappstatekeyidb
                 },
@@ -183,7 +184,12 @@ async function fetchauth() {
     }
 }
 
-/* -------------------------- Extra package include ------------------------- */
+//---------------------------Sticker Forword Modules--------------------------------//
+// const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+// const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` };
+
+//-------------------------- Extra package include & const--------------------------//
+const MyBotGrp = '918318585418-1614183205@g.us';
 const { getCmdToBlock } = require('./DB/cmdBlockDB') //block cmd module
 const { getBlockWarning } = require('./DB/blockDB') //block module 
 const myNumber = process.env.myNumber + '@s.whatsapp.net';
@@ -252,6 +258,16 @@ const addCommands = async () => {
             }
         }
     });
+
+    //deleting the files .webp .jpeg .jpg .mp3 .mp4 .png
+    path = "./";
+    filenames = await readdir(path);
+    filenames.forEach((file) => {
+        if (file.endsWith(".webp") || file.endsWith(".jpeg") || file.endsWith(".mp3") || file.endsWith(".mp4") || file.endsWith(".jpg") || file.endsWith(".png")) {
+            fs.unlinkSync(path + file);
+        }
+    });
+
 };
 
 
@@ -315,6 +331,30 @@ const startSock = async () => {
             const from = msg.key.remoteJid;
             const type = Object.keys(msg.message)[0];
 
+            // if (from == MyBotGrp && mek.messages[0].message.stickerMessage) {
+            //     const buffer = await downloadMediaMessage(
+            //         mek.messages[0],
+            //         'buffer',
+            //         {},
+            //     );
+            //     const sticker = new Sticker(buffer, {
+            //         pack: 'myBitBot',
+            //         author: 'MD',
+            //         type: StickerTypes.DEFAULT,
+            //     });
+            //     const saveSticker = getRandom('.webp');
+            //     await sticker.toFile(saveSticker);
+            //     sock.sendMessage(
+            //         '917887499710-1627237107@g.us',
+            //         {
+            //             sticker: fs.readFileSync(saveSticker)
+            //         }
+            //     ).then(() => {
+            //         try {
+            //             fs.unlinkSync(saveSticker);
+            //         } catch { }
+            //     });
+            // }
             // console.log("Type: ", type);
             //-------------------------------reply-------------------//
             const reply = (take) => {
