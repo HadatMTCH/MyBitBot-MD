@@ -46,12 +46,6 @@ ${readMore}
 
 *${prefix}unwarn <@mention>*
     _remove Waring to a person_
-
-*${prefix}block <@mention>*
-    _block user from using bot_
-
-*${prefix}unblock <@mention>*
-    _unblock user_
     
 *${prefix}tagall*
     _For attendance alert_
