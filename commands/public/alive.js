@@ -12,10 +12,14 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
     ]
 
     const buttonMessage = {
-        text: "```⌊ *ɢʀᴇᴇᴛɪɴɢ* !! " + msg.pushName + " ⌋```",
+        text: "```⌊ *ɢʀᴇᴇᴛɪɴɢ* " + msg.pushName + " ⌋```",
         footer: "```🫠🅈🄴🅂 🄸'🄼 🄰🄻🄸🅅🄴🫠```",
         buttons: buttons,
         headerType: 1
     }
-    await sock.sendMessage(from, buttonMessage);
+    await sock.sendMessage(
+        from,
+        buttonMessage,
+        { quoted: msg }
+    );
 };
