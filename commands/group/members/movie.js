@@ -27,8 +27,15 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
         method: "GET",
         url: link,
         responseType: "streamarraybuffer",
+    }).catch(() => {
+        return reply(`Site Down`)
     });
-    data = res.data;
+    try {
+
+        data = res.data;
+    } catch {
+        return reply('Website Down');
+    }
     let word = data.trim().replace(/^\s+|\s+$/gm, '').split("\n");
     try {
         for (let i = 0; i < word.length; i++) {
