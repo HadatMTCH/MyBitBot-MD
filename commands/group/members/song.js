@@ -1,8 +1,6 @@
 const ytdl = require('ytdl-core');
 const yts = require('yt-search');
 const fs = require('fs');
-const { Mimetype } = require('@adiwajshing/baileys');
-const getRandom = (ext) => { return `${Math.floor(Math.random() * 10000)}${ext}` };
 module.exports.command = () => {
     let cmd = ["song", "play"];
     return { cmd, handler };
