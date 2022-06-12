@@ -321,6 +321,8 @@ const startSock = async () => {
     //---------------------------------------messages.upsert---------------//
     sock.ev.on("messages.upsert", async (mek) => {
         try {
+            // mek.messages[0].key.remoteJid = mek.messages[0].key.remoteJid.slice(0, mek.messages[0].key.remoteJid.search(":")) + "@" + mek.messages[0].key.remoteJid.split("@")[1];
+            // console.log(mek.messages[0].key.remoteJid);
             const msg = JSON.parse(JSON.stringify(mek)).messages[0];
 
             if (!msg.message) return;//when demote, add, remove, etc happen then msg.message is not there
@@ -361,8 +363,8 @@ const startSock = async () => {
             const reply = (take) => {
                 sock.sendMessage(
                     from,
-                    { text: take },
-                    { quoted: mek.messages[0] }
+                    { text: take }
+                    // {quoted:mek.messages[0]}
                 )
             }
             //----------------------------GET ADMINS-------------------------------//

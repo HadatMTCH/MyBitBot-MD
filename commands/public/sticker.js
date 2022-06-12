@@ -23,7 +23,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
         sock.sendMessage(
             from,
             { text: tesk },
-            { quoted: msg }
+            // { quoted: msg }
         )
     }
     if (!isGroup) {

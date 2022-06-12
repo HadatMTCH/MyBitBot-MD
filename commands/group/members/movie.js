@@ -15,7 +15,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
                 text: take,
                 linkPreview: false
             },
-            { quoted: msg }
+            // { quoted: msg }
         );
     }
     if (!args[0]) return reply('Provide Movie Name.');

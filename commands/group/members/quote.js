@@ -10,7 +10,7 @@ const handler = async (sock, msg, from, args, msgInfoObj) => {
         sock.sendMessage(
             from,
             { text: take },
-            { quoted: msg }
+            // { quoted: msg }
         );
     }
     let url = "https://zenquotes.io/api/random";
